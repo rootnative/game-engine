@@ -1,6 +1,6 @@
 # Documentation
 
-API reference and concept docs for `@onlynative/game-engine`.
+API reference and concept docs for `@rootnative/game-engine`.
 
 For install + a runnable minimal example, see the [repo root README](../README.md).
 
@@ -21,6 +21,6 @@ For install + a runnable minimal example, see the [repo root README](../README.m
 
 | Import | Module |
 | --- | --- |
-| `@onlynative/game-engine` | ECS, world, loop, `<GameEngine>`, physics, asset loader |
-| `@onlynative/game-engine/renderers/skia` | `<SkiaRenderer>`, `SkiaAtlas`, `loadSkiaAtlas`, `gridFrames` |
-| `@onlynative/game-engine/renderers/three` | `<ThreeRenderer>`, `MeshDef`, 3D ECS components |
+| `@rootnative/game-engine` | ECS, world, loop, `<GameEngine>`, physics, asset loader |
+| `@rootnative/game-engine/renderers/skia` | `<SkiaRenderer>`, `SkiaAtlas`, `loadSkiaAtlas`, `gridFrames` |
+| `@rootnative/game-engine/renderers/three` | `<ThreeRenderer>`, `MeshDef`, 3D ECS components |

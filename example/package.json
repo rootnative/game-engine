@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@onlynative/game-engine": "workspace:*",
+    "@rootnative/game-engine": "workspace:*",
     "@shopify/react-native-skia": "2.2.12",
     "expo": "~54.0.33",
     "expo-asset": "~12.0.13",

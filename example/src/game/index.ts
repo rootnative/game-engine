@@ -9,8 +9,8 @@ import {
   type Physics,
   type System,
   type World,
-} from '@onlynative/game-engine';
-import { type SkiaAtlas } from '@onlynative/game-engine/renderers/skia';
+} from '@rootnative/game-engine';
+import { type SkiaAtlas } from '@rootnative/game-engine/renderers/skia';
 
 import { buildAtlases } from './atlases';
 import {

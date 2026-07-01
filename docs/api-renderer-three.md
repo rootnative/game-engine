@@ -1,7 +1,7 @@
 # Three.js renderer
 
 ```ts
-import { ThreeRenderer } from '@onlynative/game-engine/renderers/three';
+import { ThreeRenderer } from '@rootnative/game-engine/renderers/three';
 import type {
   ThreeRendererProps,
   Transform3DComponent,
@@ -11,7 +11,7 @@ import type {
   AmbientLightComponent,
   DirectionalLightComponent,
   PointLightComponent,
-} from '@onlynative/game-engine/renderers/three';
+} from '@rootnative/game-engine/renderers/three';
 ```
 
 A 3D renderer built on `expo-gl` + `expo-three`. Lives behind a subpath import so consumers who use a different renderer never pull `three` / `expo-gl` / `expo-three` into their bundle. The peer dependencies are marked optional in the engine's `package.json` for the same reason — install them only when you wire this renderer up.
@@ -180,7 +180,7 @@ Use the renderer prop:
 />
 ```
 
-For a complete runnable scene see [`example-3d/`](https://github.com/onlynative/game-engine/tree/main/example-3d) in the repo.
+For a complete runnable scene see [`example-3d/`](https://github.com/rootnative/game-engine/tree/main/example-3d) in the repo.
 
 ---
 
@@ -191,7 +191,7 @@ import {
   loadGltf,
   useGltf,
   extractMeshDefs,
-} from '@onlynative/game-engine/renderers/three';
+} from '@rootnative/game-engine/renderers/three';
 
 function loadGltf(source: AssetSource): Promise<GLTF>;
 function useGltf(source: AssetSource): GLTF;

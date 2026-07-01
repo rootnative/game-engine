@@ -6,13 +6,13 @@ import {
   loadSkiaImage,
   loadSkiaAtlas,
   gridFrames,
-} from '@onlynative/game-engine/renderers/skia';
+} from '@rootnative/game-engine/renderers/skia';
 import type {
   SkiaRendererProps,
   SkiaAtlas,
   SkiaFrame,
   GridFramesOptions,
-} from '@onlynative/game-engine/renderers/skia';
+} from '@rootnative/game-engine/renderers/skia';
 ```
 
 A single `<Canvas>` driven by a Reanimated worklet that iterates a flat snapshot of the world on the UI thread. No React reconciliation per entity, no per-frame `runOnJS` / `runOnUI` calls.

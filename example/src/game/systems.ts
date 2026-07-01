@@ -1,4 +1,4 @@
-import { destroyEntity, query, type System } from '@onlynative/game-engine';
+import { destroyEntity, query, type System } from '@rootnative/game-engine';
 
 import {
   BALL_RADIUS,

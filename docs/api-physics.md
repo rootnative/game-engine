@@ -1,7 +1,7 @@
 # Physics
 
 ```ts
-import { createPhysics } from '@onlynative/game-engine';
+import { createPhysics } from '@rootnative/game-engine';
 import type {
   Physics,
   PhysicsOptions,
@@ -10,7 +10,7 @@ import type {
   BodyComponent,
   Position2D,
   Velocity2D,
-} from '@onlynative/game-engine';
+} from '@rootnative/game-engine';
 ```
 
 A custom **circles + axis-aligned-box** solver built directly on the ECS TypedArrays. Roughly 250 lines, allocation-free in the hot loop, ~5–10× faster than a JS Box2D port for circle-stacking workloads.

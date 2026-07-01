@@ -1,7 +1,7 @@
 # `<GameEngine>` and `useEngine`
 
 ```ts
-import { GameEngine, useEngine } from '@onlynative/game-engine';
+import { GameEngine, useEngine } from '@rootnative/game-engine';
 ```
 
 `<GameEngine>` is the React mount point for the engine. It owns the simulation [`Loop`](./api-core.md#loop), wires gesture-based input into the loop's touch queue, and propagates layout size into `ctx.screen`. The renderer is passed in as a child node so engine core stays renderer-agnostic.
@@ -109,7 +109,7 @@ The recommended pattern: build one `Promise<{ world, systems }>` per level and d
 
 ```tsx
 import { Suspense, useMemo, useState, useTransition } from 'react';
-import { GameEngine } from '@onlynative/game-engine';
+import { GameEngine } from '@rootnative/game-engine';
 
 interface Level {
   world: World;

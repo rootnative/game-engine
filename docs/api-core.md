@@ -11,7 +11,7 @@ import {
   hasComponent,
   query,
   createLoop,
-} from '@onlynative/game-engine';
+} from '@rootnative/game-engine';
 ```
 
 Everything here is renderer-agnostic. The same imports work whether you render with Skia today or `expo-gl` + three.js later.

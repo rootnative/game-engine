@@ -5,7 +5,7 @@ import {
   defineComponent,
   type System,
   type World,
-} from '@onlynative/game-engine';
+} from '@rootnative/game-engine';
 import {
   extractMeshDefs,
   type AmbientLightComponent,
@@ -14,7 +14,7 @@ import {
   type MeshComponent,
   type MeshDef,
   type Transform3DComponent,
-} from '@onlynative/game-engine/renderers/three';
+} from '@rootnative/game-engine/renderers/three';
 import * as THREE from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 

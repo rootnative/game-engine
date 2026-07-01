@@ -20,7 +20,7 @@ const sources = [
 const divider = '='.repeat(80);
 
 const parts = [
-  '# @onlynative/game-engine — full documentation',
+  '# @rootnative/game-engine — full documentation',
   '',
   '> Concatenated for offline LLM ingestion. This file inlines the README and every doc under docs/. Each section below is delimited by a divider and labelled with its source path. Internal markdown links between docs (e.g. `./api-core.md`) refer to other sections in this same file.',
   '',

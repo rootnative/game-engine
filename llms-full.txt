@@ -1,4 +1,4 @@
-# @onlynative/game-engine — full documentation
+# @rootnative/game-engine — full documentation
 
 > Concatenated for offline LLM ingestion. This file inlines the README and every doc under docs/. Each section below is delimited by a divider and labelled with its source path. Internal markdown links between docs (e.g. `./api-core.md`) refer to other sections in this same file.
 
@@ -19,7 +19,7 @@ Contents:
 # Source: README.md
 ================================================================================
 
-# @onlynative/game-engine
+# @rootnative/game-engine
 
 A 2D (and soon 3D) game engine for React Native built to run inside **Expo Go** — no custom native modules, no `expo prebuild`, no config plugins.
 
@@ -35,7 +35,7 @@ A 2D (and soon 3D) game engine for React Native built to run inside **Expo Go** 
 ## Install
 
 ```sh
-yarn add @onlynative/game-engine
+yarn add @rootnative/game-engine
 npx expo install \
   @shopify/react-native-skia \
   expo-asset \
@@ -75,8 +75,8 @@ import {
   createWorld,
   defineComponent,
   type System,
-} from '@onlynative/game-engine';
-import { SkiaRenderer, loadSkiaAtlas, type SkiaAtlas } from '@onlynative/game-engine/renderers/skia';
+} from '@rootnative/game-engine';
+import { SkiaRenderer, loadSkiaAtlas, type SkiaAtlas } from '@rootnative/game-engine/renderers/skia';
 
 const world = createWorld({ capacity: 1024 });
 const Position = defineComponent(world, { x: 'f32', y: 'f32' });
@@ -132,10 +132,10 @@ export default function App() {
 
 | Import | Contains |
 | --- | --- |
-| `@onlynative/game-engine` | ECS, world, loop, `<GameEngine>`, physics, asset loader |
-| `@onlynative/game-engine/renderers/skia` | `<SkiaRenderer>`, `SkiaAtlas`, `loadSkiaAtlas`, `gridFrames` |
+| `@rootnative/game-engine` | ECS, world, loop, `<GameEngine>`, physics, asset loader |
+| `@rootnative/game-engine/renderers/skia` | `<SkiaRenderer>`, `SkiaAtlas`, `loadSkiaAtlas`, `gridFrames` |
 
-The renderer split is structural: phase 2 will add `@onlynative/game-engine/renderers/three`, which depends on `expo-gl` and `expo-three`. Keeping renderers behind subpath imports means consumers never pay for a renderer they don't use.
+The renderer split is structural: phase 2 will add `@rootnative/game-engine/renderers/three`, which depends on `expo-gl` and `expo-three`. Keeping renderers behind subpath imports means consumers never pay for a renderer they don't use.
 
 ## Constraints
 
@@ -154,7 +154,7 @@ MIT
 
 # Documentation
 
-API reference and concept docs for `@onlynative/game-engine`.
+API reference and concept docs for `@rootnative/game-engine`.
 
 For install + a runnable minimal example, see the [repo root README](../README.md).
 
@@ -175,9 +175,9 @@ For install + a runnable minimal example, see the [repo root README](../README.m
 
 | Import | Module |
 | --- | --- |
-| `@onlynative/game-engine` | ECS, world, loop, `<GameEngine>`, physics, asset loader |
-| `@onlynative/game-engine/renderers/skia` | `<SkiaRenderer>`, `SkiaAtlas`, `loadSkiaAtlas`, `gridFrames` |
-| `@onlynative/game-engine/renderers/three` | `<ThreeRenderer>`, `MeshDef`, 3D ECS components |
+| `@rootnative/game-engine` | ECS, world, loop, `<GameEngine>`, physics, asset loader |
+| `@rootnative/game-engine/renderers/skia` | `<SkiaRenderer>`, `SkiaAtlas`, `loadSkiaAtlas`, `gridFrames` |
+| `@rootnative/game-engine/renderers/three` | `<ThreeRenderer>`, `MeshDef`, 3D ECS components |
 
 ================================================================================
 # Source: docs/concepts.md
@@ -295,7 +295,7 @@ import {
   hasComponent,
   query,
   createLoop,
-} from '@onlynative/game-engine';
+} from '@rootnative/game-engine';
 ```
 
 Everything here is renderer-agnostic. The same imports work whether you render with Skia today or `expo-gl` + three.js later.
@@ -580,7 +580,7 @@ The loop runs a `setTimeout`-driven accumulator on the JS thread:
 # `<GameEngine>` and `useEngine`
 
 ```ts
-import { GameEngine, useEngine } from '@onlynative/game-engine';
+import { GameEngine, useEngine } from '@rootnative/game-engine';
 ```
 
 `<GameEngine>` is the React mount point for the engine. It owns the simulation [`Loop`](./api-core.md#loop), wires gesture-based input into the loop's touch queue, and propagates layout size into `ctx.screen`. The renderer is passed in as a child node so engine core stays renderer-agnostic.
@@ -688,7 +688,7 @@ The recommended pattern: build one `Promise<{ world, systems }>` per level and d
 
 ```tsx
 import { Suspense, useMemo, useState, useTransition } from 'react';
-import { GameEngine } from '@onlynative/game-engine';
+import { GameEngine } from '@rootnative/game-engine';
 
 interface Level {
   world: World;
@@ -789,7 +789,7 @@ The loop is **not** destroyed on `running={false}` — it's just stopped. If you
 # Physics
 
 ```ts
-import { createPhysics } from '@onlynative/game-engine';
+import { createPhysics } from '@rootnative/game-engine';
 import type {
   Physics,
   PhysicsOptions,
@@ -798,7 +798,7 @@ import type {
   BodyComponent,
   Position2D,
   Velocity2D,
-} from '@onlynative/game-engine';
+} from '@rootnative/game-engine';
 ```
 
 A custom **circles + axis-aligned-box** solver built directly on the ECS TypedArrays. Roughly 250 lines, allocation-free in the hot loop, ~5–10× faster than a JS Box2D port for circle-stacking workloads.
@@ -1003,8 +1003,8 @@ Re-exported so you can type your own components if you build them outside the ca
 # Assets
 
 ```ts
-import { loadAsset, useAsset, clearAssetCache } from '@onlynative/game-engine';
-import type { AssetSource, LoadedAsset } from '@onlynative/game-engine';
+import { loadAsset, useAsset, clearAssetCache } from '@rootnative/game-engine';
+import type { AssetSource, LoadedAsset } from '@rootnative/game-engine';
 ```
 
 One API for **bundled assets** (`require('./img.png')`) and **remote URLs** (`'https://.../img.png'`). Resolution is async and Suspense-friendly — the engine never blocks the simulation loop on I/O.
@@ -1107,7 +1107,7 @@ Wrap consumers in `<Suspense fallback={...}>`. The shared in-flight `Promise` me
 
 ```tsx
 import { Suspense } from 'react';
-import { useAsset } from '@onlynative/game-engine';
+import { useAsset } from '@rootnative/game-engine';
 
 function Ball() {
   const asset = useAsset(require('./ball.png'));
@@ -1150,7 +1150,7 @@ This does **not** delete cached files from disk. Use it after deleting files you
 The Skia renderer takes a `SharedValue<ReadonlyArray<SkiaAtlas>>` indexed by `Sprite.atlas`, with `Sprite.frame` selecting a sub-rect of each atlas image. The renderer ships a helper that wraps `loadAsset` + `Skia.Image.MakeImageFromEncoded`:
 
 ```tsx
-import { loadSkiaAtlas, gridFrames, type SkiaAtlas } from '@onlynative/game-engine/renderers/skia';
+import { loadSkiaAtlas, gridFrames, type SkiaAtlas } from '@rootnative/game-engine/renderers/skia';
 
 const atlases = useSharedValue<ReadonlyArray<SkiaAtlas>>([]);
 
@@ -1195,13 +1195,13 @@ import {
   loadSkiaImage,
   loadSkiaAtlas,
   gridFrames,
-} from '@onlynative/game-engine/renderers/skia';
+} from '@rootnative/game-engine/renderers/skia';
 import type {
   SkiaRendererProps,
   SkiaAtlas,
   SkiaFrame,
   GridFramesOptions,
-} from '@onlynative/game-engine/renderers/skia';
+} from '@rootnative/game-engine/renderers/skia';
 ```
 
 A single `<Canvas>` driven by a Reanimated worklet that iterates a flat snapshot of the world on the UI thread. No React reconciliation per entity, no per-frame `runOnJS` / `runOnUI` calls.
@@ -1422,7 +1422,7 @@ Hardcoded to `#fafafa` today via the canvas's `backgroundColor` style. Wrap the 
 # Three.js renderer
 
 ```ts
-import { ThreeRenderer } from '@onlynative/game-engine/renderers/three';
+import { ThreeRenderer } from '@rootnative/game-engine/renderers/three';
 import type {
   ThreeRendererProps,
   Transform3DComponent,
@@ -1432,7 +1432,7 @@ import type {
   AmbientLightComponent,
   DirectionalLightComponent,
   PointLightComponent,
-} from '@onlynative/game-engine/renderers/three';
+} from '@rootnative/game-engine/renderers/three';
 ```
 
 A 3D renderer built on `expo-gl` + `expo-three`. Lives behind a subpath import so consumers who use a different renderer never pull `three` / `expo-gl` / `expo-three` into their bundle. The peer dependencies are marked optional in the engine's `package.json` for the same reason — install them only when you wire this renderer up.
@@ -1601,7 +1601,7 @@ Use the renderer prop:
 />
 ```
 
-For a complete runnable scene see [`example-3d/`](https://github.com/onlynative/game-engine/tree/main/example-3d) in the repo.
+For a complete runnable scene see [`example-3d/`](https://github.com/rootnative/game-engine/tree/main/example-3d) in the repo.
 
 ---
 
@@ -1612,7 +1612,7 @@ import {
   loadGltf,
   useGltf,
   extractMeshDefs,
-} from '@onlynative/game-engine/renderers/three';
+} from '@rootnative/game-engine/renderers/three';
 
 function loadGltf(source: AssetSource): Promise<GLTF>;
 function useGltf(source: AssetSource): GLTF;

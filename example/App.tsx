@@ -5,8 +5,8 @@ import { useSharedValue } from 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
-import { GameEngine } from '@onlynative/game-engine';
-import { SkiaRenderer, type SkiaAtlas } from '@onlynative/game-engine/renderers/skia';
+import { GameEngine } from '@rootnative/game-engine';
+import { SkiaRenderer, type SkiaAtlas } from '@rootnative/game-engine/renderers/skia';
 
 import { HUD } from './src/HUD';
 import { loadLevel } from './src/game';

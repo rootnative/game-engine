@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@onlynative/game-engine": "workspace:*",
+    "@rootnative/game-engine": "workspace:*",
     "expo": "~54.0.33",
     "expo-asset": "~12.0.13",
     "expo-file-system": "~19.0.22",

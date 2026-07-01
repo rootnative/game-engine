@@ -1,4 +1,4 @@
-# @onlynative/game-engine
+# @rootnative/game-engine
 
 A 2D (and soon 3D) game engine for React Native built to run inside **Expo Go** — no custom native modules, no `expo prebuild`, no config plugins.
 
@@ -14,7 +14,7 @@ A 2D (and soon 3D) game engine for React Native built to run inside **Expo Go** 
 ## Install
 
 ```sh
-yarn add @onlynative/game-engine
+yarn add @rootnative/game-engine
 npx expo install \
   @shopify/react-native-skia \
   expo-asset \
@@ -54,8 +54,8 @@ import {
   createWorld,
   defineComponent,
   type System,
-} from '@onlynative/game-engine';
-import { SkiaRenderer, loadSkiaAtlas, type SkiaAtlas } from '@onlynative/game-engine/renderers/skia';
+} from '@rootnative/game-engine';
+import { SkiaRenderer, loadSkiaAtlas, type SkiaAtlas } from '@rootnative/game-engine/renderers/skia';
 
 const world = createWorld({ capacity: 1024 });
 const Position = defineComponent(world, { x: 'f32', y: 'f32' });
@@ -111,10 +111,10 @@ export default function App() {
 
 | Import | Contains |
 | --- | --- |
-| `@onlynative/game-engine` | ECS, world, loop, `<GameEngine>`, physics, asset loader |
-| `@onlynative/game-engine/renderers/skia` | `<SkiaRenderer>`, `SkiaAtlas`, `loadSkiaAtlas`, `gridFrames` |
+| `@rootnative/game-engine` | ECS, world, loop, `<GameEngine>`, physics, asset loader |
+| `@rootnative/game-engine/renderers/skia` | `<SkiaRenderer>`, `SkiaAtlas`, `loadSkiaAtlas`, `gridFrames` |
 
-The renderer split is structural: phase 2 will add `@onlynative/game-engine/renderers/three`, which depends on `expo-gl` and `expo-three`. Keeping renderers behind subpath imports means consumers never pay for a renderer they don't use.
+The renderer split is structural: phase 2 will add `@rootnative/game-engine/renderers/three`, which depends on `expo-gl` and `expo-three`. Keeping renderers behind subpath imports means consumers never pay for a renderer they don't use.
 
 ## Constraints
 

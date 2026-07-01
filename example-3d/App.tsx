@@ -1,5 +1,5 @@
-import { GameEngine } from '@onlynative/game-engine';
-import { ThreeRenderer, useGltf } from '@onlynative/game-engine/renderers/three';
+import { GameEngine } from '@rootnative/game-engine';
+import { ThreeRenderer, useGltf } from '@rootnative/game-engine/renderers/three';
 import { StatusBar } from 'expo-status-bar';
 import { Suspense, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

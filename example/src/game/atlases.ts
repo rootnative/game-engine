@@ -1,5 +1,5 @@
 import { Skia, type SkImage } from '@shopify/react-native-skia';
-import { gridFrames, type SkiaAtlas } from '@onlynative/game-engine/renderers/skia';
+import { gridFrames, type SkiaAtlas } from '@rootnative/game-engine/renderers/skia';
 
 import { BALL_RADIUS, BRICK_H, BRICK_W, PADDLE_HEIGHT, PADDLE_WIDTH } from './constants';
 

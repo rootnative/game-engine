@@ -1,8 +1,8 @@
 # Assets
 
 ```ts
-import { loadAsset, useAsset, clearAssetCache } from '@onlynative/game-engine';
-import type { AssetSource, LoadedAsset } from '@onlynative/game-engine';
+import { loadAsset, useAsset, clearAssetCache } from '@rootnative/game-engine';
+import type { AssetSource, LoadedAsset } from '@rootnative/game-engine';
 ```
 
 One API for **bundled assets** (`require('./img.png')`) and **remote URLs** (`'https://.../img.png'`). Resolution is async and Suspense-friendly — the engine never blocks the simulation loop on I/O.
@@ -105,7 +105,7 @@ Wrap consumers in `<Suspense fallback={...}>`. The shared in-flight `Promise` me
 
 ```tsx
 import { Suspense } from 'react';
-import { useAsset } from '@onlynative/game-engine';
+import { useAsset } from '@rootnative/game-engine';
 
 function Ball() {
   const asset = useAsset(require('./ball.png'));
@@ -148,7 +148,7 @@ This does **not** delete cached files from disk. Use it after deleting files you
 The Skia renderer takes a `SharedValue<ReadonlyArray<SkiaAtlas>>` indexed by `Sprite.atlas`, with `Sprite.frame` selecting a sub-rect of each atlas image. The renderer ships a helper that wraps `loadAsset` + `Skia.Image.MakeImageFromEncoded`:
 
 ```tsx
-import { loadSkiaAtlas, gridFrames, type SkiaAtlas } from '@onlynative/game-engine/renderers/skia';
+import { loadSkiaAtlas, gridFrames, type SkiaAtlas } from '@rootnative/game-engine/renderers/skia';
 
 const atlases = useSharedValue<ReadonlyArray<SkiaAtlas>>([]);
 
