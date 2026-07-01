@@ -4,4 +4,9 @@ export type {
   Transform3DComponent,
   MeshComponent,
   MeshDef,
+  CameraComponent,
+  AmbientLightComponent,
+  DirectionalLightComponent,
+  PointLightComponent,
 } from './ThreeRenderer';
+export { loadGltf, useGltf, extractMeshDefs } from './loader';

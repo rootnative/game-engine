@@ -14,6 +14,7 @@ const sources = [
   { path: 'docs/api-physics.md', label: 'docs/api-physics.md — physics' },
   { path: 'docs/api-assets.md', label: 'docs/api-assets.md — assets' },
   { path: 'docs/api-renderer-skia.md', label: 'docs/api-renderer-skia.md — Skia renderer' },
+  { path: 'docs/api-renderer-three.md', label: 'docs/api-renderer-three.md — Three.js renderer' },
 ];
 
 const divider = '='.repeat(80);

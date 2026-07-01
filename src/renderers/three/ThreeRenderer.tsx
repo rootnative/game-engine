@@ -24,6 +24,30 @@ export type Transform3DComponent = Component<{
 
 export type MeshComponent = Component<{ mesh: 'u32' }>;
 
+export type CameraComponent = Component<{
+  fov: 'f32';
+  near: 'f32';
+  far: 'f32';
+  active: 'u8';
+}>;
+
+export type AmbientLightComponent = Component<{
+  color: 'u32';
+  intensity: 'f32';
+}>;
+
+export type DirectionalLightComponent = Component<{
+  color: 'u32';
+  intensity: 'f32';
+}>;
+
+export type PointLightComponent = Component<{
+  color: 'u32';
+  intensity: 'f32';
+  distance: 'f32';
+  decay: 'f32';
+}>;
+
 export interface MeshDef {
   readonly geometry: THREE.BufferGeometry;
   readonly material: THREE.Material | THREE.Material[];
@@ -32,8 +56,12 @@ export interface MeshDef {
 export interface ThreeRendererProps {
   readonly world: World;
   readonly transform: Transform3DComponent;
-  readonly mesh: MeshComponent;
-  readonly meshes: ReadonlyArray<MeshDef>;
+  readonly mesh?: MeshComponent;
+  readonly meshes?: ReadonlyArray<MeshDef>;
+  readonly camera?: CameraComponent;
+  readonly ambientLight?: AmbientLightComponent;
+  readonly directionalLight?: DirectionalLightComponent;
+  readonly pointLight?: PointLightComponent;
   readonly setupScene?: (scene: THREE.Scene, camera: THREE.PerspectiveCamera) => void;
   readonly clearColor?: number | string;
 }
@@ -41,6 +69,10 @@ export interface ThreeRendererProps {
 interface LiveMesh {
   obj: THREE.Mesh;
   meshIdx: number;
+}
+
+interface LiveLight<L extends THREE.Light> {
+  obj: L;
 }
 
 export function ThreeRenderer(props: ThreeRendererProps) {
@@ -66,7 +98,11 @@ export function ThreeRenderer(props: ThreeRendererProps) {
     camera.lookAt(0, 0, 0);
     initial.setupScene?.(scene, camera);
 
-    const live = new Map<EntityId, LiveMesh>();
+    const liveMeshes = new Map<EntityId, LiveMesh>();
+    const liveAmbient = new Map<EntityId, LiveLight<THREE.AmbientLight>>();
+    const liveDirectional = new Map<EntityId, LiveLight<THREE.DirectionalLight>>();
+    const livePoint = new Map<EntityId, LiveLight<THREE.PointLight>>();
+
     let rafId = 0;
     let stopped = false;
 
@@ -77,9 +113,6 @@ export function ThreeRenderer(props: ThreeRendererProps) {
       const p = propsRef.current;
       const w = p.world;
       const t = p.transform;
-      const m = p.mesh;
-      const mList = p.meshes;
-      const required = t.bit | m.bit;
       const n = w.nextId;
       const alive = w.alive;
       const maskArr = w.mask;
@@ -92,43 +125,173 @@ export function ThreeRenderer(props: ThreeRendererProps) {
       const sx = t.data.sx as Float32Array;
       const sy = t.data.sy as Float32Array;
       const sz = t.data.sz as Float32Array;
-      const meshIdx = m.data.mesh as Uint32Array;
 
-      for (let i = 0; i < n; i++) {
-        if (alive[i] !== 1 || (maskArr[i] & required) !== required) continue;
-        const idx = meshIdx[i];
-        const def = mList[idx];
-        let entry = live.get(i);
-        if (!def) {
-          if (entry) {
-            scene.remove(entry.obj);
-            live.delete(i);
+      // 1. Camera reconciliation. The first alive entity carrying both
+      //    Transform3D and Camera with `active === 1` wins. If none match,
+      //    the default camera (configured in setupScene or the (0,0,5)
+      //    factory default) is used as-is.
+      const camComp = p.camera;
+      if (camComp) {
+        const required = t.bit | camComp.bit;
+        const fov = camComp.data.fov as Float32Array;
+        const near = camComp.data.near as Float32Array;
+        const far = camComp.data.far as Float32Array;
+        const activeArr = camComp.data.active as Uint8Array;
+        for (let i = 0; i < n; i++) {
+          if (
+            alive[i] !== 1 ||
+            (maskArr[i] & required) !== required ||
+            activeArr[i] !== 1
+          ) {
+            continue;
           }
-          continue;
+          camera.position.set(tx[i], ty[i], tz[i]);
+          camera.rotation.set(rx[i], ry[i], rz[i]);
+          if (
+            camera.fov !== fov[i] ||
+            camera.near !== near[i] ||
+            camera.far !== far[i]
+          ) {
+            camera.fov = fov[i];
+            camera.near = near[i];
+            camera.far = far[i];
+            camera.updateProjectionMatrix();
+          }
+          break;
         }
-        if (!entry) {
-          const obj = new THREE.Mesh(def.geometry, def.material);
-          scene.add(obj);
-          entry = { obj, meshIdx: idx };
-          live.set(i, entry);
-        } else if (entry.meshIdx !== idx) {
-          entry.obj.geometry = def.geometry;
-          entry.obj.material = def.material;
-          entry.meshIdx = idx;
-        }
-        entry.obj.position.set(tx[i], ty[i], tz[i]);
-        entry.obj.rotation.set(rx[i], ry[i], rz[i]);
-        entry.obj.scale.set(sx[i], sy[i], sz[i]);
       }
 
-      // Sweep entries whose entity is no longer eligible. Iterating Map keys
-      // while deleting is safe in JS.
-      live.forEach((entry, id) => {
-        if (alive[id] !== 1 || (maskArr[id] & required) !== required) {
-          scene.remove(entry.obj);
-          live.delete(id);
+      // 2. Mesh reconciliation.
+      const meshComp = p.mesh;
+      const meshDefs = p.meshes;
+      if (meshComp && meshDefs) {
+        const required = t.bit | meshComp.bit;
+        const meshIdx = meshComp.data.mesh as Uint32Array;
+
+        for (let i = 0; i < n; i++) {
+          if (alive[i] !== 1 || (maskArr[i] & required) !== required) continue;
+          const idx = meshIdx[i];
+          const def = meshDefs[idx];
+          let entry = liveMeshes.get(i);
+          if (!def) {
+            if (entry) {
+              scene.remove(entry.obj);
+              liveMeshes.delete(i);
+            }
+            continue;
+          }
+          if (!entry) {
+            const obj = new THREE.Mesh(def.geometry, def.material);
+            scene.add(obj);
+            entry = { obj, meshIdx: idx };
+            liveMeshes.set(i, entry);
+          } else if (entry.meshIdx !== idx) {
+            entry.obj.geometry = def.geometry;
+            entry.obj.material = def.material;
+            entry.meshIdx = idx;
+          }
+          entry.obj.position.set(tx[i], ty[i], tz[i]);
+          entry.obj.rotation.set(rx[i], ry[i], rz[i]);
+          entry.obj.scale.set(sx[i], sy[i], sz[i]);
         }
-      });
+
+        liveMeshes.forEach((entry, id) => {
+          if (alive[id] !== 1 || (maskArr[id] & required) !== required) {
+            scene.remove(entry.obj);
+            liveMeshes.delete(id);
+          }
+        });
+      }
+
+      // 3. Ambient light reconciliation. No transform required — ambient
+      //    light is positionless.
+      const ambComp = p.ambientLight;
+      if (ambComp) {
+        const required = ambComp.bit;
+        const color = ambComp.data.color as Uint32Array;
+        const intensity = ambComp.data.intensity as Float32Array;
+        for (let i = 0; i < n; i++) {
+          if (alive[i] !== 1 || (maskArr[i] & required) !== required) continue;
+          let entry = liveAmbient.get(i);
+          if (!entry) {
+            const obj = new THREE.AmbientLight(color[i], intensity[i]);
+            scene.add(obj);
+            entry = { obj };
+            liveAmbient.set(i, entry);
+          } else {
+            if (entry.obj.color.getHex() !== color[i]) entry.obj.color.setHex(color[i]);
+            entry.obj.intensity = intensity[i];
+          }
+        }
+        liveAmbient.forEach((entry, id) => {
+          if (alive[id] !== 1 || (maskArr[id] & required) !== required) {
+            scene.remove(entry.obj);
+            liveAmbient.delete(id);
+          }
+        });
+      }
+
+      // 4. Directional light reconciliation. Position comes from Transform3D;
+      //    the light points at its `target` (default the scene origin).
+      const dirComp = p.directionalLight;
+      if (dirComp) {
+        const required = t.bit | dirComp.bit;
+        const color = dirComp.data.color as Uint32Array;
+        const intensity = dirComp.data.intensity as Float32Array;
+        for (let i = 0; i < n; i++) {
+          if (alive[i] !== 1 || (maskArr[i] & required) !== required) continue;
+          let entry = liveDirectional.get(i);
+          if (!entry) {
+            const obj = new THREE.DirectionalLight(color[i], intensity[i]);
+            scene.add(obj);
+            entry = { obj };
+            liveDirectional.set(i, entry);
+          } else if (entry.obj.color.getHex() !== color[i]) {
+            entry.obj.color.setHex(color[i]);
+          }
+          entry.obj.intensity = intensity[i];
+          entry.obj.position.set(tx[i], ty[i], tz[i]);
+        }
+        liveDirectional.forEach((entry, id) => {
+          if (alive[id] !== 1 || (maskArr[id] & required) !== required) {
+            scene.remove(entry.obj);
+            liveDirectional.delete(id);
+          }
+        });
+      }
+
+      // 5. Point light reconciliation. Position from Transform3D; distance/
+      //    decay from the component.
+      const pointComp = p.pointLight;
+      if (pointComp) {
+        const required = t.bit | pointComp.bit;
+        const color = pointComp.data.color as Uint32Array;
+        const intensity = pointComp.data.intensity as Float32Array;
+        const distance = pointComp.data.distance as Float32Array;
+        const decay = pointComp.data.decay as Float32Array;
+        for (let i = 0; i < n; i++) {
+          if (alive[i] !== 1 || (maskArr[i] & required) !== required) continue;
+          let entry = livePoint.get(i);
+          if (!entry) {
+            const obj = new THREE.PointLight(color[i], intensity[i], distance[i], decay[i]);
+            scene.add(obj);
+            entry = { obj };
+            livePoint.set(i, entry);
+          } else if (entry.obj.color.getHex() !== color[i]) {
+            entry.obj.color.setHex(color[i]);
+          }
+          entry.obj.intensity = intensity[i];
+          entry.obj.distance = distance[i];
+          entry.obj.decay = decay[i];
+          entry.obj.position.set(tx[i], ty[i], tz[i]);
+        }
+        livePoint.forEach((entry, id) => {
+          if (alive[id] !== 1 || (maskArr[id] & required) !== required) {
+            scene.remove(entry.obj);
+            livePoint.delete(id);
+          }
+        });
+      }
 
       renderer.render(scene, camera);
       gl.endFrameEXP();
@@ -139,8 +302,14 @@ export function ThreeRenderer(props: ThreeRendererProps) {
     cleanupRef.current = () => {
       stopped = true;
       if (rafId !== 0) cancelAnimationFrame(rafId);
-      live.forEach(({ obj }) => scene.remove(obj));
-      live.clear();
+      liveMeshes.forEach(({ obj }) => scene.remove(obj));
+      liveMeshes.clear();
+      liveAmbient.forEach(({ obj }) => scene.remove(obj));
+      liveAmbient.clear();
+      liveDirectional.forEach(({ obj }) => scene.remove(obj));
+      liveDirectional.clear();
+      livePoint.forEach(({ obj }) => scene.remove(obj));
+      livePoint.clear();
       renderer.dispose();
     };
   }, []);

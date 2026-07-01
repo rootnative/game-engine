@@ -2,7 +2,7 @@
 
 > A 2D (and soon 3D) ECS-based game engine for React Native that runs inside Expo Go — no custom native modules, no `expo prebuild`. Skia renderer, fixed-timestep simulation on the JS thread, render loop on the UI thread via Reanimated worklets, custom circles + AABB physics, Suspense-friendly asset loader.
 
-The engine is split into a renderer-agnostic core (ECS, world, loop, input, assets, math) and pluggable renderers under subpath imports. Phase 1 ships `<SkiaRenderer>`; Phase 2 will add `expo-gl` + three.js behind the same engine core. Entities are integer ids; components are TypedArray-backed schemas; queries are O(N) bitmask scans. The simulation runs on the JS thread at a fixed 60 Hz timestep, while the render side runs as Reanimated worklets on the UI thread, reading shared snapshots — there is no React reconciliation per frame.
+The engine is split into a renderer-agnostic core (ECS, world, loop, input, assets, math) and pluggable renderers under subpath imports. Phase 1 ships `<SkiaRenderer>`; Phase 2 ships `<ThreeRenderer>` on `expo-gl` + `expo-three` with ECS-driven camera and lights. Both renderers run behind the same engine core. Entities are integer ids; components are TypedArray-backed schemas; queries are O(N) bitmask scans. The simulation runs on the JS thread at a fixed 60 Hz timestep, while the render side runs as Reanimated worklets on the UI thread, reading shared snapshots — there is no React reconciliation per frame.
 
 For a runnable minimal example, see the README.
 
@@ -22,6 +22,7 @@ For a runnable minimal example, see the README.
 - [Physics](https://unpkg.com/@onlynative/game-engine/docs/api-physics.md): `createPhysics`, `BodyDef`, `BodyShape`, the custom circles + AABB solver, friction/restitution rules, and current limitations (no rotation, no joints, O(N²) broadphase).
 - [Assets](https://unpkg.com/@onlynative/game-engine/docs/api-assets.md): `loadAsset`, `useAsset`, `clearAssetCache`, the bundled-vs-remote source model, Suspense semantics, and disk-cache caveats.
 - [Skia renderer](https://unpkg.com/@onlynative/game-engine/docs/api-renderer-skia.md): `<SkiaRenderer>`, `SkiaAtlas` / `SkiaFrame`, `loadSkiaImage` / `loadSkiaAtlas` / `gridFrames`, the worklet snapshot/draw pipeline, atlas + frame indexing, and what is and isn't yet wired (`tint`, rotation).
+- [Three.js renderer](https://unpkg.com/@onlynative/game-engine/docs/api-renderer-three.md): `<ThreeRenderer>` on `expo-gl` + `expo-three`, `MeshDef`, ECS-driven `CameraComponent` / `AmbientLightComponent` / `DirectionalLightComponent` / `PointLightComponent`, the JS-thread reconciliation loop, `loadGltf` / `useGltf` / `extractMeshDefs` for `.glb` assets via the engine asset pipeline, and current limitations (no LookAt component, .glb-only, embedded-texture caveats).
 
 ## Optional
 
