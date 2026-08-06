@@ -9,9 +9,14 @@ The engine runs **two loops** that share state through Reanimated shared values,
 | Loop | Thread | Cadence | Job |
 | --- | --- | --- | --- |
 | **Simulation** | JS thread | Fixed timestep (default 60 Hz) | Run systems, mutate component buffers, step physics |
-| **Render** | UI thread | Display rate (worklets via `useFrameCallback` / `useDerivedValue`) | Read component buffers, draw |
+| **Render** | UI thread (Skia) / JS thread (three) | Snapshot per sim tick (Skia) / display rate (three) | Read component buffers, draw |
 
-They never block each other. The render loop reads the latest snapshot the sim has produced and interpolates between the previous and current state with `ctx.time.alpha`. If the JS thread hiccups, rendering stays at display rate; if rendering stalls, the sim still ticks at 60 Hz.
+They never block each other. The render side reads the latest snapshot the sim has produced. If the JS thread hiccups, the Skia renderer's worklet keeps drawing the last snapshot on the UI thread; if rendering stalls, the sim still ticks at 60 Hz.
+
+Two details where the implementation is narrower than the ideal:
+
+- **No interpolation yet.** `ctx.time.alpha` is reserved for blending between the two most recent sim states, but it is always `1` and no renderer reads it. Rendering shows the latest sim state directly.
+- **The three renderer runs on the JS thread**, not the UI thread — the `expo-gl` context lives there, so the worklet trick doesn't apply. It reads the ECS buffers directly, which costs nothing extra because the sim is on that thread anyway.
 
 This decoupling is the point. A naive `requestAnimationFrame` + `setState` loop ties simulation and rendering to one thread (JS) and forces React to reconcile on every frame. That's the bottleneck the engine is shaped to avoid.
 
@@ -58,13 +63,12 @@ Bitmask scans are O(N) over the world capacity per query. Archetype-based querie
 
 ## 4. Renderer is pluggable
 
-The engine core never imports Skia or three. A renderer is just a React component that:
+The engine core never imports Skia or three. A renderer is just a React component that reads component buffers and draws. How it does that is up to the renderer:
 
-1. Reads component buffers (typically by subscribing via `loop.onAfterStep`).
-2. Pushes a snapshot into a `SharedValue`.
-3. Draws inside a worklet.
+- [`<SkiaRenderer>`](./api-renderer-skia.md) subscribes via `loop.onAfterStep`, packs a snapshot into a `SharedValue`, and draws inside a UI-thread worklet.
+- [`<ThreeRenderer>`](./api-renderer-three.md) runs a `requestAnimationFrame` loop on the JS thread and reads the ECS buffers directly — no snapshot, because it shares a thread with the sim.
 
-Phase 1 ships [`<SkiaRenderer>`](./api-renderer-skia.md). Phase 2 will add `<ThreeRenderer>` (`expo-gl` + `expo-three`) under a separate subpath import. Switching renderers does not require changing systems, queries, or component layout.
+Both ship today, under separate subpath imports (`/renderers/skia`, `/renderers/three`) so consumers only bundle the one they use. Switching renderers does not require changing systems, queries, or component layout.
 
 ## What lives where
 
@@ -75,8 +79,8 @@ src/
   physics/      Custom AABB + circles solver
   assets/       Bundled + remote asset loader (Suspense-friendly)
   renderers/
-    skia/       Phase 1 renderer
-    three/      Phase 2 (planned)
+    skia/       Phase 1 renderer (2D)
+    three/      Phase 2 renderer (3D) + glTF loader
 ```
 
 ## Performance rules the engine enforces

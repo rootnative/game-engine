@@ -109,17 +109,18 @@ Removes the `Body` component from `id`. `Position` and `Velocity` are left in pl
 physics.detach(id);
 ```
 
-You don't have to `detach` before `destroyEntity`. The `step` skips dead entities; the body row is recycled when the slot is reused.
+You don't have to `detach` before `destroyEntity`. `destroyEntity` zeroes the entity's whole component mask, which clears the `Body` bit along with everything else, so `step` stops picking the entity up on its next scan. The row's old bytes stay in the buffers until a later `attach` overwrites them — harmless, since nothing reads a row whose bit is clear.
 
 ### `step`
 
 The `System` you put in your system list. Runs one fixed timestep per call:
 
-1. Reap dead entities from the dynamic / static work lists.
+1. Rebuild the dynamic / static work lists by scanning `[0, world.nextId)`. Dead entities and entities missing the required components are skipped, so destroyed bodies drop out here without any explicit cleanup.
 2. Integrate dynamic bodies (gravity + velocity → position).
-3. Resolve dynamic-vs-static contacts.
-4. Resolve dynamic-vs-dynamic contacts (O(N²) broadphase).
-5. Each contact: positional separation by inverse-mass ratio, restitution impulse, Coulomb friction (clamped to `μ * j_normal`).
+3. Test dynamic-vs-static pairs.
+4. Test dynamic-vs-dynamic pairs (O(N²) broadphase).
+
+Each overlapping pair is resolved inline as it's found — positional separation by inverse-mass ratio, then restitution impulse, then Coulomb friction (clamped to `μ * j_normal`). There's no separate contact-resolution phase and no contact list; resolution happens inside the pair test.
 
 Cost is dominated by the O(N²) pair loop. Comfortable up to ~200 dynamic bodies. Replace with a uniform spatial hash before pushing past that — the `step` interface stays the same.
 

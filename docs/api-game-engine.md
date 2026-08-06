@@ -35,7 +35,7 @@ The system list to run each fixed step, in order. Like `world`, replacing the ar
 
 ### `renderer`
 
-A `ReactNode` rendered inside the gesture detector. Phase 1 ships [`<SkiaRenderer>`](./api-renderer-skia.md); Phase 2 will add `<ThreeRenderer>`. Anything that reads component buffers and draws is fair game.
+A `ReactNode` rendered inside the gesture detector. The engine ships [`<SkiaRenderer>`](./api-renderer-skia.md) for 2D and [`<ThreeRenderer>`](./api-renderer-three.md) for 3D. Anything that reads component buffers and draws is fair game.
 
 ```tsx
 renderer={

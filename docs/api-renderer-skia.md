@@ -160,24 +160,25 @@ Building atlases procedurally with `Skia.Surface` works too — the renderer doe
 
 ## What the renderer draws
 
-For each alive entity matching `position.bit | sprite.bit`:
+Entities are grouped by atlas and drawn with one batched `canvas.drawAtlas` call per atlas. The outer loop walks `atlases.value`; the inner loop walks the snapshot and collects every entity whose `sprite.atlas` matches:
 
 ```
-const a = atlases.value[sprite.atlas];
-const f = a.frames[sprite.frame];
+for (let a = 0; a < atlases.value.length; a++) {
+  const atlas = atlases.value[a];
+  if (!atlas || !atlas.image) continue;
 
-canvas.drawImageRect(
-  a.image,
-  { x: f.x, y: f.y, width: f.width, height: f.height },                   // src rect
-  {
-    x: position.x - f.width  * 0.5,
-    y: position.y - f.height * 0.5,
-    width:  f.width,
-    height: f.height,
-  },                                                                      // dst rect
-  paint, // antialiased, no tint
-);
+  // Collect this atlas's entities into the src / dst arrays.
+  // srcs[n] is the frame's source rect in atlas pixels.
+  // dsts[n] is an SkRSXform placing that frame, centered on the entity.
+  //   scale = 1, radians = 0,
+  //   tx = position.x - f.width  * 0.5,
+  //   ty = position.y - f.height * 0.5
+
+  canvas.drawAtlas(atlas.image, srcs, dsts, paint); // antialiased, no tint
+}
 ```
+
+The `SkHostRect` and `SkRSXform` instances are pooled across worklet runs and mutated in place (`setXYWH` / `set`), so the inner loop allocates nothing in steady state. Pools grow monotonically as entity counts climb.
 
 So:
 
@@ -195,7 +196,7 @@ So:
    [x0, y0, atlas0, frame0, x1, y1, atlas1, frame1, ...]
    ```
 3. **Assigning `packed.value = out` triggers Reanimated to clone the array to the UI thread.**
-4. **The UI-thread `useDerivedValue` worklet wakes up.** It reads `packed.value` and `atlases.value`, builds an `SkPicture` with one `drawImageRect` per entity.
+4. **The UI-thread `useDerivedValue` worklet wakes up.** It reads `packed.value` and `atlases.value`, builds an `SkPicture` with one batched `drawAtlas` call per atlas.
 5. **The `<Picture>` element draws the picture.**
 
 > **Reanimated 4 does not zero-copy TypedArrays** (`react-native-worklets` clones every `ArrayBuffer` / `ArrayBufferView` in `cloneArrayBuffer` / `cloneArrayBufferView`). The renderer pushes a fresh snapshot each frame; assigning a new `SharedValue` reference is what makes Reanimated re-clone.
@@ -208,14 +209,15 @@ So:
 
 - **Single `<Canvas>`.** All entities draw into one Skia surface; no React tree per sprite.
 - **Snapshot, not iteration over the live world.** The worklet never touches `World` directly — Reanimated would have to clone the entire structure on every assignment.
-- **Per-frame allocation: one `Float32Array`.** Replace with a pre-allocated buffer or a circular pair of buffers if profiling says it matters; today it doesn't.
-- **`drawImageRect` allocates `SkRect`s per call.** Switch to `drawAtlas` once a single atlas image holds most of the scene; documented as a follow-up in the project's known caveats.
+- **Per-frame allocation: one `Float32Array`.** This one is required, not an oversight — Reanimated caches `ArrayBuffer` clones keyed by the JS-side buffer, so reusing a pooled buffer would make the worklet read stale bytes. A fresh allocation per frame is what forces the re-clone.
+- **One `drawAtlas` call per atlas, not per entity.** Pack the scene into few atlases and the draw-call count stays flat as entity count grows.
+- **Pooled rects and transforms.** `SkHostRect` / `SkRSXform` instances are reused across frames and mutated in place, so the draw loop is allocation-free in steady state.
 
 ---
 
 ## Background color
 
-Hardcoded to `#fafafa` today via the canvas's `backgroundColor` style. Wrap the renderer in your own `<View>` with a different background if you need control over this — the canvas' background draws under everything, so a wrapping view can show through transparency in the canvas content.
+Hardcoded to `#fafafa` via the `<Canvas>`'s `backgroundColor` style, and **not configurable today** — there's no prop for it. The background is opaque and painted by the canvas itself, so wrapping the renderer in a `<View>` of a different color will not show through. Changing it means editing `SkiaRenderer.tsx`, or drawing a full-screen rect as the first entity. A `backgroundColor` prop is on the roadmap.
 
 ---
 

@@ -199,7 +199,7 @@ interface FrameContext {
     readonly current: number;     // sim seconds since loop.start()
     readonly previous: number;    // value of `current` last tick
     readonly delta: number;       // fixed step in seconds (e.g. 1/60)
-    readonly alpha: number;       // interpolation factor, used by renderers
+    readonly alpha: number;       // reserved for interpolation; always 1 today
   };
   readonly input: {
     readonly touches: ReadonlyArray<TouchEvent>;
@@ -212,8 +212,9 @@ interface FrameContext {
 ```
 
 - **`time.delta`** is the fixed step (default `1/60`s). Use it to integrate velocities — it does **not** change frame to frame.
-- **`time.alpha`** is for renderers to interpolate between two simulation states. Systems normally ignore it.
+- **`time.alpha`** is **reserved and not yet computed** — the loop initializes it to `1` and never updates it. It is intended as the fixed-timestep interpolation factor for renderers, but no renderer reads it today and neither the Skia nor the three renderer interpolates between sim states. Don't build on it yet.
 - **`input.touches`** is drained at the end of every step. Read events early in your system list.
+- **`input.pointers`** is **reserved and always empty** — nothing populates it. Use `input.touches` for input today.
 - **`screen`** is set from the `<GameEngine>` view's `onLayout`.
 - **`dispatch(event)`** queues a `GameEvent` for the *current* tick. `events` is drained at end of step.
 
@@ -250,7 +251,7 @@ function createLoop(
 ```
 
 - **`hz`** — fixed-timestep rate. Default `60`.
-- **`maxCatchUpMs`** — accumulator cap. If wall-clock delta exceeds this (e.g. tab backgrounded), the loop discards the excess and treats the gap as one step. Default `250`ms.
+- **`maxCatchUpMs`** — wall-delta clamp. If the measured wall-clock delta exceeds this (e.g. app backgrounded), the loop substitutes one step's worth of time instead, so a long freeze can't trigger a runaway catch-up burst. Default `250`ms. Note this clamps the *incoming* delta only — any time already in the accumulator still applies, so the tick may still run more than one step.
 
 ### `Loop` shape
 
@@ -282,7 +283,7 @@ interface Loop {
 The loop runs a `setTimeout`-driven accumulator on the JS thread:
 
 1. On each tick, compute `wallDelta = now() - lastWall`.
-2. If `wallDelta > maxCatchUpMs`, clamp to one step (avoid runaway catch-up after a freeze).
+2. If `wallDelta > maxCatchUpMs`, substitute one step's worth of time (avoid runaway catch-up after a freeze).
 3. Add to accumulator. While `acc >= stepMs`, call `step()` and subtract.
 4. After all steps for this tick, fire `onAfterStep` callbacks **once** (not per step).
 5. Schedule the next tick to land at the next step boundary.

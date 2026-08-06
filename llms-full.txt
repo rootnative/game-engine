@@ -25,12 +25,13 @@ A 2D (and soon 3D) game engine for React Native built to run inside **Expo Go** 
 
 - **ECS core** — integer entity ids, TypedArray-backed component buffers, bitmask queries
 - **Two-loop architecture** — fixed-timestep simulation on the JS thread, render loop on the UI thread
-- **Skia renderer** — single `<Canvas>` driven by Reanimated worklets; no React reconciliation per frame
+- **Skia renderer (2D)** — single `<Canvas>` driven by Reanimated worklets; batched `drawAtlas`, no React reconciliation per frame
+- **Three.js renderer (3D)** — `expo-gl` + `expo-three`, ECS-driven meshes, camera, and lights, with a `.glb` loader
 - **Physics** — custom circles + AABB solver tailored to arcade games (no rotation, no joints, ~5–10× faster than a JS Box2D port for stacked-circle workloads)
 - **Asset pipeline** — bundled (`require`) and remote (URL) assets behind one Suspense-friendly API
 - **Input** — Gesture Handler's modern Gesture API on the UI thread
 
-> **Status: 0.0.x — pre-1.0.** APIs may shift. Phase 1 (2D) is functionally complete and dogfooded in the demo app in this repo. Phase 2 (`expo-gl` + three.js) lands behind the same engine core without a rewrite.
+> **Status: 0.0.x — pre-1.0.** APIs may shift. Phase 1 (2D) is functionally complete and dogfooded in `example/`. Phase 2 (3D, `expo-gl` + three.js) runs behind the same engine core with no rewrite — meshes, camera, lights, and `.glb` loading all work, demoed in `example-3d/`.
 
 ## Install
 
@@ -44,6 +45,8 @@ npx expo install \
   react-native-reanimated \
   react-native-worklets
 ```
+
+That's the 2D set. For the 3D renderer, add `expo-gl`, `expo-three`, and `three` — see [Subpath exports](#subpath-exports).
 
 All of the above are **peer dependencies** — your Expo app owns the SDK version. Keep `react-native-worklets/plugin` as the **last** plugin in `babel.config.js`:
 
@@ -63,10 +66,9 @@ Wrap your app root with `GestureHandlerRootView` (Gesture Handler requirement).
 ## Minimal example
 
 ```tsx
-import { useMemo } from 'react';
-import { useDerivedValue } from 'react-native-reanimated';
+import { useEffect, useMemo } from 'react';
+import { useSharedValue } from 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useImageAsTexture } from '@shopify/react-native-skia';
 import {
   GameEngine,
   addComponent,
@@ -134,8 +136,13 @@ export default function App() {
 | --- | --- |
 | `@rootnative/game-engine` | ECS, world, loop, `<GameEngine>`, physics, asset loader |
 | `@rootnative/game-engine/renderers/skia` | `<SkiaRenderer>`, `SkiaAtlas`, `loadSkiaAtlas`, `gridFrames` |
+| `@rootnative/game-engine/renderers/three` | `<ThreeRenderer>`, `MeshDef`, 3D ECS components, `loadGltf` / `useGltf` |
 
-The renderer split is structural: phase 2 will add `@rootnative/game-engine/renderers/three`, which depends on `expo-gl` and `expo-three`. Keeping renderers behind subpath imports means consumers never pay for a renderer they don't use.
+The renderer split is structural. Skia, `expo-gl`, `expo-three`, and `three` are all **optional** peer dependencies, so consumers never pay for a renderer they don't use — install only the one you wire up. For 3D:
+
+```sh
+npx expo install expo-gl expo-three three@0.166
+```
 
 ## Constraints
 
@@ -194,9 +201,14 @@ The engine runs **two loops** that share state through Reanimated shared values,
 | Loop | Thread | Cadence | Job |
 | --- | --- | --- | --- |
 | **Simulation** | JS thread | Fixed timestep (default 60 Hz) | Run systems, mutate component buffers, step physics |
-| **Render** | UI thread | Display rate (worklets via `useFrameCallback` / `useDerivedValue`) | Read component buffers, draw |
+| **Render** | UI thread (Skia) / JS thread (three) | Snapshot per sim tick (Skia) / display rate (three) | Read component buffers, draw |
 
-They never block each other. The render loop reads the latest snapshot the sim has produced and interpolates between the previous and current state with `ctx.time.alpha`. If the JS thread hiccups, rendering stays at display rate; if rendering stalls, the sim still ticks at 60 Hz.
+They never block each other. The render side reads the latest snapshot the sim has produced. If the JS thread hiccups, the Skia renderer's worklet keeps drawing the last snapshot on the UI thread; if rendering stalls, the sim still ticks at 60 Hz.
+
+Two details where the implementation is narrower than the ideal:
+
+- **No interpolation yet.** `ctx.time.alpha` is reserved for blending between the two most recent sim states, but it is always `1` and no renderer reads it. Rendering shows the latest sim state directly.
+- **The three renderer runs on the JS thread**, not the UI thread — the `expo-gl` context lives there, so the worklet trick doesn't apply. It reads the ECS buffers directly, which costs nothing extra because the sim is on that thread anyway.
 
 This decoupling is the point. A naive `requestAnimationFrame` + `setState` loop ties simulation and rendering to one thread (JS) and forces React to reconcile on every frame. That's the bottleneck the engine is shaped to avoid.
 
@@ -243,13 +255,12 @@ Bitmask scans are O(N) over the world capacity per query. Archetype-based querie
 
 ## 4. Renderer is pluggable
 
-The engine core never imports Skia or three. A renderer is just a React component that:
+The engine core never imports Skia or three. A renderer is just a React component that reads component buffers and draws. How it does that is up to the renderer:
 
-1. Reads component buffers (typically by subscribing via `loop.onAfterStep`).
-2. Pushes a snapshot into a `SharedValue`.
-3. Draws inside a worklet.
+- [`<SkiaRenderer>`](./api-renderer-skia.md) subscribes via `loop.onAfterStep`, packs a snapshot into a `SharedValue`, and draws inside a UI-thread worklet.
+- [`<ThreeRenderer>`](./api-renderer-three.md) runs a `requestAnimationFrame` loop on the JS thread and reads the ECS buffers directly — no snapshot, because it shares a thread with the sim.
 
-Phase 1 ships [`<SkiaRenderer>`](./api-renderer-skia.md). Phase 2 will add `<ThreeRenderer>` (`expo-gl` + `expo-three`) under a separate subpath import. Switching renderers does not require changing systems, queries, or component layout.
+Both ship today, under separate subpath imports (`/renderers/skia`, `/renderers/three`) so consumers only bundle the one they use. Switching renderers does not require changing systems, queries, or component layout.
 
 ## What lives where
 
@@ -260,8 +271,8 @@ src/
   physics/      Custom AABB + circles solver
   assets/       Bundled + remote asset loader (Suspense-friendly)
   renderers/
-    skia/       Phase 1 renderer
-    three/      Phase 2 (planned)
+    skia/       Phase 1 renderer (2D)
+    three/      Phase 2 renderer (3D) + glTF loader
 ```
 
 ## Performance rules the engine enforces
@@ -483,7 +494,7 @@ interface FrameContext {
     readonly current: number;     // sim seconds since loop.start()
     readonly previous: number;    // value of `current` last tick
     readonly delta: number;       // fixed step in seconds (e.g. 1/60)
-    readonly alpha: number;       // interpolation factor, used by renderers
+    readonly alpha: number;       // reserved for interpolation; always 1 today
   };
   readonly input: {
     readonly touches: ReadonlyArray<TouchEvent>;
@@ -496,8 +507,9 @@ interface FrameContext {
 ```
 
 - **`time.delta`** is the fixed step (default `1/60`s). Use it to integrate velocities — it does **not** change frame to frame.
-- **`time.alpha`** is for renderers to interpolate between two simulation states. Systems normally ignore it.
+- **`time.alpha`** is **reserved and not yet computed** — the loop initializes it to `1` and never updates it. It is intended as the fixed-timestep interpolation factor for renderers, but no renderer reads it today and neither the Skia nor the three renderer interpolates between sim states. Don't build on it yet.
 - **`input.touches`** is drained at the end of every step. Read events early in your system list.
+- **`input.pointers`** is **reserved and always empty** — nothing populates it. Use `input.touches` for input today.
 - **`screen`** is set from the `<GameEngine>` view's `onLayout`.
 - **`dispatch(event)`** queues a `GameEvent` for the *current* tick. `events` is drained at end of step.
 
@@ -534,7 +546,7 @@ function createLoop(
 ```
 
 - **`hz`** — fixed-timestep rate. Default `60`.
-- **`maxCatchUpMs`** — accumulator cap. If wall-clock delta exceeds this (e.g. tab backgrounded), the loop discards the excess and treats the gap as one step. Default `250`ms.
+- **`maxCatchUpMs`** — wall-delta clamp. If the measured wall-clock delta exceeds this (e.g. app backgrounded), the loop substitutes one step's worth of time instead, so a long freeze can't trigger a runaway catch-up burst. Default `250`ms. Note this clamps the *incoming* delta only — any time already in the accumulator still applies, so the tick may still run more than one step.
 
 ### `Loop` shape
 
@@ -566,7 +578,7 @@ interface Loop {
 The loop runs a `setTimeout`-driven accumulator on the JS thread:
 
 1. On each tick, compute `wallDelta = now() - lastWall`.
-2. If `wallDelta > maxCatchUpMs`, clamp to one step (avoid runaway catch-up after a freeze).
+2. If `wallDelta > maxCatchUpMs`, substitute one step's worth of time (avoid runaway catch-up after a freeze).
 3. Add to accumulator. While `acc >= stepMs`, call `step()` and subtract.
 4. After all steps for this tick, fire `onAfterStep` callbacks **once** (not per step).
 5. Schedule the next tick to land at the next step boundary.
@@ -614,7 +626,7 @@ The system list to run each fixed step, in order. Like `world`, replacing the ar
 
 ### `renderer`
 
-A `ReactNode` rendered inside the gesture detector. Phase 1 ships [`<SkiaRenderer>`](./api-renderer-skia.md); Phase 2 will add `<ThreeRenderer>`. Anything that reads component buffers and draws is fair game.
+A `ReactNode` rendered inside the gesture detector. The engine ships [`<SkiaRenderer>`](./api-renderer-skia.md) for 2D and [`<ThreeRenderer>`](./api-renderer-three.md) for 3D. Anything that reads component buffers and draws is fair game.
 
 ```tsx
 renderer={
@@ -897,17 +909,18 @@ Removes the `Body` component from `id`. `Position` and `Velocity` are left in pl
 physics.detach(id);
 ```
 
-You don't have to `detach` before `destroyEntity`. The `step` skips dead entities; the body row is recycled when the slot is reused.
+You don't have to `detach` before `destroyEntity`. `destroyEntity` zeroes the entity's whole component mask, which clears the `Body` bit along with everything else, so `step` stops picking the entity up on its next scan. The row's old bytes stay in the buffers until a later `attach` overwrites them — harmless, since nothing reads a row whose bit is clear.
 
 ### `step`
 
 The `System` you put in your system list. Runs one fixed timestep per call:
 
-1. Reap dead entities from the dynamic / static work lists.
+1. Rebuild the dynamic / static work lists by scanning `[0, world.nextId)`. Dead entities and entities missing the required components are skipped, so destroyed bodies drop out here without any explicit cleanup.
 2. Integrate dynamic bodies (gravity + velocity → position).
-3. Resolve dynamic-vs-static contacts.
-4. Resolve dynamic-vs-dynamic contacts (O(N²) broadphase).
-5. Each contact: positional separation by inverse-mass ratio, restitution impulse, Coulomb friction (clamped to `μ * j_normal`).
+3. Test dynamic-vs-static pairs.
+4. Test dynamic-vs-dynamic pairs (O(N²) broadphase).
+
+Each overlapping pair is resolved inline as it's found — positional separation by inverse-mass ratio, then restitution impulse, then Coulomb friction (clamped to `μ * j_normal`). There's no separate contact-resolution phase and no contact list; resolution happens inside the pair test.
 
 Cost is dominated by the O(N²) pair loop. Comfortable up to ~200 dynamic bodies. Replace with a uniform spatial hash before pushing past that — the `step` interface stays the same.
 
@@ -1349,24 +1362,25 @@ Building atlases procedurally with `Skia.Surface` works too — the renderer doe
 
 ## What the renderer draws
 
-For each alive entity matching `position.bit | sprite.bit`:
+Entities are grouped by atlas and drawn with one batched `canvas.drawAtlas` call per atlas. The outer loop walks `atlases.value`; the inner loop walks the snapshot and collects every entity whose `sprite.atlas` matches:
 
 ```
-const a = atlases.value[sprite.atlas];
-const f = a.frames[sprite.frame];
+for (let a = 0; a < atlases.value.length; a++) {
+  const atlas = atlases.value[a];
+  if (!atlas || !atlas.image) continue;
 
-canvas.drawImageRect(
-  a.image,
-  { x: f.x, y: f.y, width: f.width, height: f.height },                   // src rect
-  {
-    x: position.x - f.width  * 0.5,
-    y: position.y - f.height * 0.5,
-    width:  f.width,
-    height: f.height,
-  },                                                                      // dst rect
-  paint, // antialiased, no tint
-);
+  // Collect this atlas's entities into the src / dst arrays.
+  // srcs[n] is the frame's source rect in atlas pixels.
+  // dsts[n] is an SkRSXform placing that frame, centered on the entity.
+  //   scale = 1, radians = 0,
+  //   tx = position.x - f.width  * 0.5,
+  //   ty = position.y - f.height * 0.5
+
+  canvas.drawAtlas(atlas.image, srcs, dsts, paint); // antialiased, no tint
+}
 ```
+
+The `SkHostRect` and `SkRSXform` instances are pooled across worklet runs and mutated in place (`setXYWH` / `set`), so the inner loop allocates nothing in steady state. Pools grow monotonically as entity counts climb.
 
 So:
 
@@ -1384,7 +1398,7 @@ So:
    [x0, y0, atlas0, frame0, x1, y1, atlas1, frame1, ...]
    ```
 3. **Assigning `packed.value = out` triggers Reanimated to clone the array to the UI thread.**
-4. **The UI-thread `useDerivedValue` worklet wakes up.** It reads `packed.value` and `atlases.value`, builds an `SkPicture` with one `drawImageRect` per entity.
+4. **The UI-thread `useDerivedValue` worklet wakes up.** It reads `packed.value` and `atlases.value`, builds an `SkPicture` with one batched `drawAtlas` call per atlas.
 5. **The `<Picture>` element draws the picture.**
 
 > **Reanimated 4 does not zero-copy TypedArrays** (`react-native-worklets` clones every `ArrayBuffer` / `ArrayBufferView` in `cloneArrayBuffer` / `cloneArrayBufferView`). The renderer pushes a fresh snapshot each frame; assigning a new `SharedValue` reference is what makes Reanimated re-clone.
@@ -1397,14 +1411,15 @@ So:
 
 - **Single `<Canvas>`.** All entities draw into one Skia surface; no React tree per sprite.
 - **Snapshot, not iteration over the live world.** The worklet never touches `World` directly — Reanimated would have to clone the entire structure on every assignment.
-- **Per-frame allocation: one `Float32Array`.** Replace with a pre-allocated buffer or a circular pair of buffers if profiling says it matters; today it doesn't.
-- **`drawImageRect` allocates `SkRect`s per call.** Switch to `drawAtlas` once a single atlas image holds most of the scene; documented as a follow-up in the project's known caveats.
+- **Per-frame allocation: one `Float32Array`.** This one is required, not an oversight — Reanimated caches `ArrayBuffer` clones keyed by the JS-side buffer, so reusing a pooled buffer would make the worklet read stale bytes. A fresh allocation per frame is what forces the re-clone.
+- **One `drawAtlas` call per atlas, not per entity.** Pack the scene into few atlases and the draw-call count stays flat as entity count grows.
+- **Pooled rects and transforms.** `SkHostRect` / `SkRSXform` instances are reused across frames and mutated in place, so the draw loop is allocation-free in steady state.
 
 ---
 
 ## Background color
 
-Hardcoded to `#fafafa` today via the canvas's `backgroundColor` style. Wrap the renderer in your own `<View>` with a different background if you need control over this — the canvas' background draws under everything, so a wrapping view can show through transparency in the canvas content.
+Hardcoded to `#fafafa` via the `<Canvas>`'s `backgroundColor` style, and **not configurable today** — there's no prop for it. The background is opaque and painted by the canvas itself, so wrapping the renderer in a `<View>` of a different color will not show through. Changing it means editing `SkiaRenderer.tsx`, or drawing a full-screen rect as the first entity. A `backgroundColor` prop is on the roadmap.
 
 ---
 

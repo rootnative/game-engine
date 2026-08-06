@@ -4,12 +4,13 @@ A 2D (and soon 3D) game engine for React Native built to run inside **Expo Go** 
 
 - **ECS core** — integer entity ids, TypedArray-backed component buffers, bitmask queries
 - **Two-loop architecture** — fixed-timestep simulation on the JS thread, render loop on the UI thread
-- **Skia renderer** — single `<Canvas>` driven by Reanimated worklets; no React reconciliation per frame
+- **Skia renderer (2D)** — single `<Canvas>` driven by Reanimated worklets; batched `drawAtlas`, no React reconciliation per frame
+- **Three.js renderer (3D)** — `expo-gl` + `expo-three`, ECS-driven meshes, camera, and lights, with a `.glb` loader
 - **Physics** — custom circles + AABB solver tailored to arcade games (no rotation, no joints, ~5–10× faster than a JS Box2D port for stacked-circle workloads)
 - **Asset pipeline** — bundled (`require`) and remote (URL) assets behind one Suspense-friendly API
 - **Input** — Gesture Handler's modern Gesture API on the UI thread
 
-> **Status: 0.0.x — pre-1.0.** APIs may shift. Phase 1 (2D) is functionally complete and dogfooded in the demo app in this repo. Phase 2 (`expo-gl` + three.js) lands behind the same engine core without a rewrite.
+> **Status: 0.0.x — pre-1.0.** APIs may shift. Phase 1 (2D) is functionally complete and dogfooded in `example/`. Phase 2 (3D, `expo-gl` + three.js) runs behind the same engine core with no rewrite — meshes, camera, lights, and `.glb` loading all work, demoed in `example-3d/`.
 
 ## Install
 
@@ -23,6 +24,8 @@ npx expo install \
   react-native-reanimated \
   react-native-worklets
 ```
+
+That's the 2D set. For the 3D renderer, add `expo-gl`, `expo-three`, and `three` — see [Subpath exports](#subpath-exports).
 
 All of the above are **peer dependencies** — your Expo app owns the SDK version. Keep `react-native-worklets/plugin` as the **last** plugin in `babel.config.js`:
 
@@ -42,10 +45,9 @@ Wrap your app root with `GestureHandlerRootView` (Gesture Handler requirement).
 ## Minimal example
 
 ```tsx
-import { useMemo } from 'react';
-import { useDerivedValue } from 'react-native-reanimated';
+import { useEffect, useMemo } from 'react';
+import { useSharedValue } from 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useImageAsTexture } from '@shopify/react-native-skia';
 import {
   GameEngine,
   addComponent,
@@ -113,8 +115,13 @@ export default function App() {
 | --- | --- |
 | `@rootnative/game-engine` | ECS, world, loop, `<GameEngine>`, physics, asset loader |
 | `@rootnative/game-engine/renderers/skia` | `<SkiaRenderer>`, `SkiaAtlas`, `loadSkiaAtlas`, `gridFrames` |
+| `@rootnative/game-engine/renderers/three` | `<ThreeRenderer>`, `MeshDef`, 3D ECS components, `loadGltf` / `useGltf` |
 
-The renderer split is structural: phase 2 will add `@rootnative/game-engine/renderers/three`, which depends on `expo-gl` and `expo-three`. Keeping renderers behind subpath imports means consumers never pay for a renderer they don't use.
+The renderer split is structural. Skia, `expo-gl`, `expo-three`, and `three` are all **optional** peer dependencies, so consumers never pay for a renderer they don't use — install only the one you wire up. For 3D:
+
+```sh
+npx expo install expo-gl expo-three three@0.166
+```
 
 ## Constraints
 
