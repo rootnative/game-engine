@@ -30,7 +30,7 @@ A 2D (and soon 3D) game engine for React Native built to run inside **Expo Go** 
 - **Asset pipeline** — bundled (`require`) and remote (URL) assets behind one Suspense-friendly API
 - **Input** — Gesture Handler's modern Gesture API on the UI thread
 
-> **Status: 0.1.x — pre-1.0.** APIs may shift. Phase 1 (2D) is functionally complete and dogfooded in the demo app in this repo. Phase 2 (`expo-gl` + three.js) lands behind the same engine core without a rewrite.
+> **Status: 0.0.x — pre-1.0.** APIs may shift. Phase 1 (2D) is functionally complete and dogfooded in the demo app in this repo. Phase 2 (`expo-gl` + three.js) lands behind the same engine core without a rewrite.
 
 ## Install
 

@@ -1,6 +1,6 @@
 {
   "name": "@rootnative/game-engine",
-  "version": "0.0.0-1.alpha",
+  "version": "0.0.1",
   "description": "2D (and soon 3D) game engine for React Native + Expo Go. Skia-based renderer, ECS core, fixed-timestep loop, no native code.",
   "keywords": [
     "expo",
