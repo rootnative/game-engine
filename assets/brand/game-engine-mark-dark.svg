@@ -1,0 +1,13 @@
+<!--
+  Lighter face tones, for any dark surface where the #065f46 lower-right face
+  loses contrast.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="RootNative Game Engine">
+  <title>RootNative Game Engine</title>
+  <g>
+    <path d="M 32 5 L 6 30 L 32 37 Z" fill="#d1fae5" />
+    <path d="M 32 5 L 32 37 L 58 30 Z" fill="#6ee7b7" />
+    <path d="M 6 30 L 32 59 L 32 37 Z" fill="#10b981" />
+    <path d="M 32 37 L 32 59 L 58 30 Z" fill="#047857" />
+  </g>
+</svg>

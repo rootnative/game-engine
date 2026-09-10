@@ -1,0 +1,11 @@
+<!--
+  Two-face reduction for sizes where the four tones muddy and the internal
+  seams stop resolving: favicons, and anything below roughly 24 px.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="RootNative Game Engine">
+  <title>RootNative Game Engine</title>
+  <g>
+    <path d="M 32 5 L 6 30 L 32 37 L 58 30 Z" fill="#34d399" />
+    <path d="M 6 30 L 32 59 L 58 30 L 32 37 Z" fill="#065f46" />
+  </g>
+</svg>

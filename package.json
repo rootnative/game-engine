@@ -55,6 +55,7 @@
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "build:llms": "node scripts/build-llms-full.mjs",
+    "build:brand": "node scripts/build-brand.mjs",
     "typecheck": "tsc --noEmit && pnpm --filter example typecheck && pnpm --filter example-3d typecheck",
     "prepack": "pnpm build && pnpm build:llms",
     "start": "pnpm --filter example start",

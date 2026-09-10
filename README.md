@@ -1,3 +1,10 @@
+<!--
+  Absolute URL, not a relative path: the repo root is the published package, so
+  this README is also the npm package page, and npm does not resolve
+  repository-relative image paths.
+-->
+<img src="https://raw.githubusercontent.com/rootnative/game-engine/main/assets/brand/game-engine-mark.png" alt="" width="88" height="88" />
+
 # @rootnative/game-engine
 
 A 2D (and soon 3D) game engine for React Native built to run inside **Expo Go** — no custom native modules, no `expo prebuild`, no config plugins.
