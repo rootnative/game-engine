@@ -1,0 +1,89 @@
+name: CI / Build & Test
+
+# `example/**` and `example-3d/**` are in the filter because
+# `pnpm run typecheck` also typechecks both example apps. `README.md` and
+# `docs/**` are in it because they are the sources of `llms-full.txt`.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "example/**"
+      - "example-3d/**"
+      - "docs/**"
+      - "scripts/**"
+      - "README.md"
+      - "llms-full.txt"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.json"
+      - "tsconfig.build.json"
+      - ".nvmrc"
+      - ".npmrc"
+      - ".github/workflows/ci-build.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "example/**"
+      - "example-3d/**"
+      - "docs/**"
+      - "scripts/**"
+      - "README.md"
+      - "llms-full.txt"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.json"
+      - "tsconfig.build.json"
+      - ".nvmrc"
+      - ".npmrc"
+      - ".github/workflows/ci-build.yml"
+
+# The token only reads the repository.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Typecheck, build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Runs before the build on purpose. With no `dist/`, the examples
+      # resolve the engine through the `react-native` condition, which points
+      # at `src/`, so this step checks the source and not a stale build.
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Build package
+        run: pnpm run build
+
+      # `llms-full.txt` ships in the tarball. A doc edit without
+      # `pnpm run build:llms` leaves the shipped copy behind.
+      - name: llms-full.txt check
+        run: |
+          pnpm run build:llms
+          if ! git diff --exit-code -- llms-full.txt; then
+            echo "::error::llms-full.txt is stale. Run 'pnpm run build:llms' and commit the result."
+            exit 1
+          fi
