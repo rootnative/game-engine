@@ -28,7 +28,7 @@ function titleFor(status: 'ready' | 'won' | 'lost'): string {
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'flex-start',
   },
   topBar: {

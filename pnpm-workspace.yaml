@@ -2,6 +2,11 @@ packages:
   - 'example'
   - 'example-3d'
 
+# The Skia postinstall copies prebuilt native libraries for a native build.
+# Expo Go already contains Skia, and this repo never builds native code.
+allowBuilds:
+  '@shopify/react-native-skia': false
+
 # Metro/RN tooling assumes a flat node_modules; pnpm >=10 reads settings from
 # this file (the same setting in .npmrc is kept for older pnpm versions).
 nodeLinker: hoisted

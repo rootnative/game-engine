@@ -10,7 +10,7 @@ import {
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSharedValue } from 'react-native-reanimated';
-import { runOnJS } from 'react-native-worklets';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { createLoop, type Loop } from './core/loop';
 import type { System, TouchEvent, World } from './core/types';
@@ -89,7 +89,7 @@ export function GameEngine({
         'worklet';
         prevTx.value = 0;
         prevTy.value = 0;
-        runOnJS(pushTouch)({ id: 0, type: 'start', x: e.x, y: e.y, t: Date.now() });
+        scheduleOnRN(pushTouch, { id: 0, type: 'start', x: e.x, y: e.y, t: Date.now() });
       })
       .onUpdate((e) => {
         'worklet';
@@ -97,23 +97,23 @@ export function GameEngine({
         const dy = e.translationY - prevTy.value;
         prevTx.value = e.translationX;
         prevTy.value = e.translationY;
-        runOnJS(pushTouch)({ id: 0, type: 'move', x: e.x, y: e.y, dx, dy, t: Date.now() });
+        scheduleOnRN(pushTouch, { id: 0, type: 'move', x: e.x, y: e.y, dx, dy, t: Date.now() });
       })
       .onEnd((e) => {
         'worklet';
-        runOnJS(pushTouch)({ id: 0, type: 'end', x: e.x, y: e.y, t: Date.now() });
+        scheduleOnRN(pushTouch, { id: 0, type: 'end', x: e.x, y: e.y, t: Date.now() });
       });
 
     const tap = Gesture.Tap().onEnd((e, success) => {
       'worklet';
       if (!success) return;
-      runOnJS(pushTouch)({ id: 0, type: 'tap', x: e.x, y: e.y, t: Date.now() });
+      scheduleOnRN(pushTouch, { id: 0, type: 'tap', x: e.x, y: e.y, t: Date.now() });
     });
 
     const longPress = Gesture.LongPress().onEnd((e, success) => {
       'worklet';
       if (!success) return;
-      runOnJS(pushTouch)({ id: 0, type: 'long-press', x: e.x, y: e.y, t: Date.now() });
+      scheduleOnRN(pushTouch, { id: 0, type: 'long-press', x: e.x, y: e.y, t: Date.now() });
     });
 
     return Gesture.Simultaneous(pan, tap, longPress);

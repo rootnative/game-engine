@@ -174,7 +174,7 @@ The two patterns differ only in where suspension happens; the swap behavior is i
 | `Gesture.Tap` | `tap` |
 | `Gesture.LongPress` | `long-press` |
 
-All three run **simultaneously** (`Gesture.Simultaneous`) on the UI thread. Each gesture handler is a worklet that calls `runOnJS(loop.pushTouch)` to enqueue a [`TouchEvent`](./api-core.md#touch-events) for the next sim step.
+All three run **simultaneously** (`Gesture.Simultaneous`) on the UI thread. Each gesture handler is a worklet that calls `scheduleOnRN(loop.pushTouch, event)` to enqueue a [`TouchEvent`](./api-core.md#touch-events) for the next sim step.
 
 The sim loop drains `ctx.input.touches` at the end of every step, so each event is visible to systems in exactly one tick.
 

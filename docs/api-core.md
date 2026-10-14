@@ -187,7 +187,7 @@ Conventions:
 
 - **Run on the JS thread.** Systems can use any JS — third-party libs (`planck`, custom solvers, AI) all live here.
 - **Allocation-free in the hot path.** Pre-allocate vectors, pool entities, hoist buffer references.
-- **No `runOnJS` / `runOnUI` per frame.** The render side picks up state through shared buffers; you don't need to bridge.
+- **No `scheduleOnRN` / `scheduleOnUI` per frame.** The render side picks up state through shared buffers; you don't need to bridge.
 
 ---
 
@@ -275,7 +275,7 @@ interface Loop {
 - **`swap(world, systems)`** — atomically replaces both. Used for level transitions; the next tick runs against the new world. The accumulator and pending events/touches are cleared.
 - **`setScreen(w, h)`** — write into `ctx.screen`.
 - **`dispatch(e)`** — same as `ctx.dispatch` but callable from outside a system.
-- **`pushTouch(e)`** — enqueue a touch event for the next tick. `<GameEngine>` calls this from gesture worklets via `runOnJS`.
+- **`pushTouch(e)`** — enqueue a touch event for the next tick. `<GameEngine>` calls this from gesture worklets via `scheduleOnRN`.
 - **`onAfterStep(cb)`** — register a callback that runs **once per frame** that produced at least one step (not once per step). Returns an unsubscribe function. Renderers use this to grab a snapshot of the world after the sim has settled.
 
 ### Timing model

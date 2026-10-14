@@ -68,16 +68,16 @@
     "web:3d": "pnpm --filter example-3d web"
   },
   "peerDependencies": {
-    "@shopify/react-native-skia": ">=2.2.0",
-    "expo-asset": ">=12.0.0",
-    "expo-file-system": ">=19.0.0",
-    "expo-gl": "~16.0.0",
+    "@shopify/react-native-skia": ">=2.6.0 <3.0.0",
+    "expo-asset": ">=57.0.0 <58.0.0",
+    "expo-file-system": ">=57.0.0 <58.0.0",
+    "expo-gl": "~57.0.0",
     "expo-three": "^8.0.0",
-    "react": ">=19.0.0",
-    "react-native": ">=0.81.0",
-    "react-native-gesture-handler": ">=2.28.0",
-    "react-native-reanimated": ">=4.1.0",
-    "react-native-worklets": ">=0.5.0",
+    "react": ">=19.2.0 <19.3.0",
+    "react-native": ">=0.86.0 <0.87.0",
+    "react-native-gesture-handler": ">=2.32.0 <3.0.0",
+    "react-native-reanimated": ">=4.5.0 <4.6.0",
+    "react-native-worklets": ">=0.10.0 <0.11.0",
     "three": "^0.166.0"
   },
   "peerDependenciesMeta": {
@@ -87,16 +87,16 @@
     "three": { "optional": true }
   },
   "devDependencies": {
-    "@shopify/react-native-skia": "2.2.12",
-    "@types/react": "~19.1.0",
-    "expo": "~54.0.33",
-    "expo-asset": "~12.0.13",
-    "expo-file-system": "~19.0.22",
-    "react": "19.1.0",
-    "react-native": "0.81.5",
-    "react-native-gesture-handler": "~2.28.0",
-    "react-native-reanimated": "~4.1.1",
-    "react-native-worklets": "0.5.1",
-    "typescript": "~5.9.2"
+    "@shopify/react-native-skia": "2.6.2",
+    "@types/react": "~19.2.0",
+    "expo": "~57.0.20",
+    "expo-asset": "~57.0.16",
+    "expo-file-system": "~57.0.6",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-reanimated": "4.5.1",
+    "react-native-worklets": "0.10.1",
+    "typescript": "~6.0.3"
   }
 }

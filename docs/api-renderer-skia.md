@@ -15,7 +15,7 @@ import type {
 } from '@rootnative/game-engine/renderers/skia';
 ```
 
-A single `<Canvas>` driven by a Reanimated worklet that iterates a flat snapshot of the world on the UI thread. No React reconciliation per entity, no per-frame `runOnJS` / `runOnUI` calls.
+A single `<Canvas>` driven by a Reanimated worklet that iterates a flat snapshot of the world on the UI thread. No React reconciliation per entity, no per-frame `scheduleOnRN` / `scheduleOnUI` calls.
 
 The renderer is the **only** place the engine talks to Skia. It lives behind a subpath import so consumers who use a different renderer never pull `@shopify/react-native-skia` into their bundle.
 

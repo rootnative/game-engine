@@ -55,14 +55,7 @@ export function useGltf(source: AssetSource): GLTF {
 
 async function resolveGltf(source: AssetSource): Promise<GLTF> {
   const asset = await loadAsset(source);
-  const file = new File(asset.localUri);
-  const bytes = await file.bytes();
-  // `Uint8Array.buffer` may include surrounding bytes (when the array is a
-  // view into a larger buffer); slice exactly the bytes we own.
-  const ab = bytes.buffer.slice(
-    bytes.byteOffset,
-    bytes.byteOffset + bytes.byteLength,
-  ) as ArrayBuffer;
+  const ab = await new File(asset.localUri).arrayBuffer();
   const loader = new GLTFLoader();
   return new Promise<GLTF>((resolve, reject) => {
     loader.parse(ab, '/', resolve, reject);

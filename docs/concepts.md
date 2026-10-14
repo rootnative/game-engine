@@ -88,7 +88,7 @@ src/
 - **No React re-renders during gameplay.** HUD/menus use React state; gameplay does not.
 - **No allocations in the hot loop.** Systems read and write into pre-allocated TypedArrays.
 - **Sim and render share buffers.** No copying, no serialization.
-- **Render-side code runs as worklets.** Sim runs on the JS thread. They communicate only through shared TypedArray buffers — never via per-frame `runOnJS` / `runOnUI` calls.
+- **Render-side code runs as worklets.** Sim runs on the JS thread. They communicate only through shared TypedArray buffers — never via per-frame `scheduleOnRN` / `scheduleOnUI` calls.
 
 ## Why not...
 

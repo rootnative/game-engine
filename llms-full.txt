@@ -19,6 +19,13 @@ Contents:
 # Source: README.md
 ================================================================================
 
+<!--
+  Absolute URL, not a relative path: the repo root is the published package, so
+  this README is also the npm package page, and npm does not resolve
+  repository-relative image paths.
+-->
+<img src="https://raw.githubusercontent.com/rootnative/game-engine/main/assets/brand/game-engine-mark.png" alt="" width="88" height="88" />
+
 # @rootnative/game-engine
 
 A 2D (and soon 3D) game engine for React Native built to run inside **Expo Go** — no custom native modules, no `expo prebuild`, no config plugins.
@@ -48,7 +55,7 @@ npx expo install \
 
 That's the 2D set. For the 3D renderer, add `expo-gl`, `expo-three`, and `three` — see [Subpath exports](#subpath-exports).
 
-All of the above are **peer dependencies** — your Expo app owns the SDK version. Keep `react-native-worklets/plugin` as the **last** plugin in `babel.config.js`:
+All of the above are **peer dependencies** — your Expo app owns the SDK version, and the declared ranges are the **Expo SDK 57** band (React 19.2, React Native 0.86, Reanimated 4.5, Worklets 0.10, Skia 2.6, `expo-file-system` 57, `expo-gl` 57). The engine develops against SDK 57 only. An older or a newer SDK is outside the ranges. Keep `react-native-worklets/plugin` as the **last** plugin in `babel.config.js`:
 
 ```js
 // babel.config.js
@@ -280,7 +287,7 @@ src/
 - **No React re-renders during gameplay.** HUD/menus use React state; gameplay does not.
 - **No allocations in the hot loop.** Systems read and write into pre-allocated TypedArrays.
 - **Sim and render share buffers.** No copying, no serialization.
-- **Render-side code runs as worklets.** Sim runs on the JS thread. They communicate only through shared TypedArray buffers — never via per-frame `runOnJS` / `runOnUI` calls.
+- **Render-side code runs as worklets.** Sim runs on the JS thread. They communicate only through shared TypedArray buffers — never via per-frame `scheduleOnRN` / `scheduleOnUI` calls.
 
 ## Why not...
 
@@ -482,7 +489,7 @@ Conventions:
 
 - **Run on the JS thread.** Systems can use any JS — third-party libs (`planck`, custom solvers, AI) all live here.
 - **Allocation-free in the hot path.** Pre-allocate vectors, pool entities, hoist buffer references.
-- **No `runOnJS` / `runOnUI` per frame.** The render side picks up state through shared buffers; you don't need to bridge.
+- **No `scheduleOnRN` / `scheduleOnUI` per frame.** The render side picks up state through shared buffers; you don't need to bridge.
 
 ---
 
@@ -570,7 +577,7 @@ interface Loop {
 - **`swap(world, systems)`** — atomically replaces both. Used for level transitions; the next tick runs against the new world. The accumulator and pending events/touches are cleared.
 - **`setScreen(w, h)`** — write into `ctx.screen`.
 - **`dispatch(e)`** — same as `ctx.dispatch` but callable from outside a system.
-- **`pushTouch(e)`** — enqueue a touch event for the next tick. `<GameEngine>` calls this from gesture worklets via `runOnJS`.
+- **`pushTouch(e)`** — enqueue a touch event for the next tick. `<GameEngine>` calls this from gesture worklets via `scheduleOnRN`.
 - **`onAfterStep(cb)`** — register a callback that runs **once per frame** that produced at least one step (not once per step). Returns an unsubscribe function. Renderers use this to grab a snapshot of the world after the sim has settled.
 
 ### Timing model
@@ -765,7 +772,7 @@ The two patterns differ only in where suspension happens; the swap behavior is i
 | `Gesture.Tap` | `tap` |
 | `Gesture.LongPress` | `long-press` |
 
-All three run **simultaneously** (`Gesture.Simultaneous`) on the UI thread. Each gesture handler is a worklet that calls `runOnJS(loop.pushTouch)` to enqueue a [`TouchEvent`](./api-core.md#touch-events) for the next sim step.
+All three run **simultaneously** (`Gesture.Simultaneous`) on the UI thread. Each gesture handler is a worklet that calls `scheduleOnRN(loop.pushTouch, event)` to enqueue a [`TouchEvent`](./api-core.md#touch-events) for the next sim step.
 
 The sim loop drains `ctx.input.touches` at the end of every step, so each event is visible to systems in exactly one tick.
 
@@ -1217,7 +1224,7 @@ import type {
 } from '@rootnative/game-engine/renderers/skia';
 ```
 
-A single `<Canvas>` driven by a Reanimated worklet that iterates a flat snapshot of the world on the UI thread. No React reconciliation per entity, no per-frame `runOnJS` / `runOnUI` calls.
+A single `<Canvas>` driven by a Reanimated worklet that iterates a flat snapshot of the world on the UI thread. No React reconciliation per entity, no per-frame `scheduleOnRN` / `scheduleOnUI` calls.
 
 The renderer is the **only** place the engine talks to Skia. It lives behind a subpath import so consumers who use a different renderer never pull `@shopify/react-native-skia` into their bundle.
 

@@ -34,7 +34,7 @@ npx expo install \
 
 That's the 2D set. For the 3D renderer, add `expo-gl`, `expo-three`, and `three` — see [Subpath exports](#subpath-exports).
 
-All of the above are **peer dependencies** — your Expo app owns the SDK version. Keep `react-native-worklets/plugin` as the **last** plugin in `babel.config.js`:
+All of the above are **peer dependencies** — your Expo app owns the SDK version, and the declared ranges are the **Expo SDK 57** band (React 19.2, React Native 0.86, Reanimated 4.5, Worklets 0.10, Skia 2.6, `expo-file-system` 57, `expo-gl` 57). The engine develops against SDK 57 only. An older or a newer SDK is outside the ranges. Keep `react-native-worklets/plugin` as the **last** plugin in `babel.config.js`:
 
 ```js
 // babel.config.js
