@@ -11,5 +11,9 @@ config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
   path.resolve(workspaceRoot, 'node_modules'),
 ];
+// Search only the two paths above. Without this, Metro also walks up from
+// each importing file and can find a second copy of a singleton (react,
+// react-native, reanimated) in a tree that is not hoisted.
+config.resolver.disableHierarchicalLookup = true;
 
 module.exports = config;
