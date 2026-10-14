@@ -17,7 +17,7 @@ A 2D (and soon 3D) game engine for React Native built to run inside **Expo Go** 
 - **Asset pipeline** — bundled (`require`) and remote (URL) assets behind one Suspense-friendly API
 - **Input** — Gesture Handler's modern Gesture API on the UI thread
 
-> **Status: 0.0.x — pre-1.0.** APIs may shift. Phase 1 (2D) is functionally complete and dogfooded in `example/`. Phase 2 (3D, `expo-gl` + three.js) runs behind the same engine core with no rewrite — meshes, camera, lights, and `.glb` loading all work, demoed in `example-3d/`.
+> **Status: `0.0.0-alpha.1` — first alpha, pre-1.0.** APIs may shift. See the [CHANGELOG](https://github.com/rootnative/game-engine/blob/main/CHANGELOG.md). Phase 1 (2D) is functionally complete and dogfooded in `example/`. Phase 2 (3D, `expo-gl` + three.js) runs behind the same engine core with no rewrite — meshes, camera, lights, and `.glb` loading all work, demoed in `example-3d/`.
 
 ## Install
 
