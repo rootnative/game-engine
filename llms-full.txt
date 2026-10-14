@@ -1463,6 +1463,8 @@ The renderer mounts a single `<GLView>`. On `onContextCreate` it builds an `expo
 
 Why JS-thread, not UI-thread: the `expo-gl` context lives on the JS thread, so the Reanimated UI-thread snapshot trick the Skia renderer uses doesn't apply — and isn't needed. The simulation already runs on the JS thread, so the renderer reads the ECS TypedArrays directly with no cloning, no per-frame `ArrayBuffer` allocation.
 
+**`expo-gl` 57 and three r163+.** `expo-gl` 57 makes a WebGL 2 context an instance of `WebGLRenderingContext`. Browsers keep the two classes separate, and three r163 and later throw `WebGL 1 is not supported since r163` for such a context. The renderer hides the global `WebGLRenderingContext` while it constructs the `expo-three` `Renderer`, then restores it. Three reads that global only in the constructor, so nothing else changes. If you construct your own `THREE.WebGLRenderer` from an `expo-gl` context, apply the same workaround. Tracked in [expo/expo#51543](https://github.com/expo/expo/issues/51543).
+
 ---
 
 ## `<ThreeRenderer>` props

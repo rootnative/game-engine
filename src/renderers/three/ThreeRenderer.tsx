@@ -75,6 +75,26 @@ interface LiveLight<L extends THREE.Light> {
   obj: L;
 }
 
+// expo-gl 57 makes a WebGL 2 context `instanceof WebGLRenderingContext`.
+// Browsers keep the two classes separate, and three r163+ throws
+// "WebGL 1 is not supported" for such a context. Three reads the global only
+// in the constructor, so hide it for that call and restore it after.
+// https://github.com/expo/expo/issues/51543
+function createRenderer(
+  gl: ExpoWebGLRenderingContext,
+  width: number,
+  height: number,
+): Renderer {
+  const g = globalThis as { WebGLRenderingContext?: unknown };
+  const saved = g.WebGLRenderingContext;
+  g.WebGLRenderingContext = undefined;
+  try {
+    return new Renderer({ gl, width, height });
+  } finally {
+    g.WebGLRenderingContext = saved;
+  }
+}
+
 export function ThreeRenderer(props: ThreeRendererProps) {
   // Capture the latest props in a ref so the GL callback (which only fires
   // once on context creation) sees current values without re-running.
@@ -89,7 +109,7 @@ export function ThreeRenderer(props: ThreeRendererProps) {
     const initial = propsRef.current;
     const clearColor = initial.clearColor ?? 0x000000;
 
-    const renderer = new Renderer({ gl, width, height });
+    const renderer = createRenderer(gl, width, height);
     renderer.setClearColor(new THREE.Color(clearColor as THREE.ColorRepresentation));
 
     const scene = new THREE.Scene();
