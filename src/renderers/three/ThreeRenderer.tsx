@@ -78,8 +78,9 @@ interface LiveLight<L extends THREE.Light> {
 // expo-gl before 58.0.4 makes a WebGL 2 context `instanceof
 // WebGLRenderingContext`. Browsers keep the two classes separate, and three
 // r163+ throws "WebGL 1 is not supported" for such a context. The fix is
-// native, so an Expo Go build can still have the bug. Three reads the global
-// only in the constructor, so hide it for that call and restore it after.
+// native, and the Expo Go builds for SDK 58 still have the bug. Three reads
+// the global only in the constructor, so hide it for that call and restore it
+// after.
 // https://github.com/expo/expo/issues/51543
 function createRenderer(
   gl: ExpoWebGLRenderingContext,
