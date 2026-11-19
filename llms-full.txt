@@ -55,7 +55,7 @@ npx expo install \
 
 That's the 2D set. For the 3D renderer, add `expo-gl`, `expo-three`, and `three` — see [Subpath exports](#subpath-exports).
 
-All of the above are **peer dependencies** — your Expo app owns the SDK version, and the declared ranges are the **Expo SDK 57** band (React 19.2, React Native 0.86, Reanimated 4.5, Worklets 0.10, Skia 2.6, `expo-file-system` 57, `expo-gl` 57). The engine develops against SDK 57 only. An older or a newer SDK is outside the ranges. Keep `react-native-worklets/plugin` as the **last** plugin in `babel.config.js`:
+All of the above are **peer dependencies** — your Expo app owns the SDK version, and the declared ranges are the **Expo SDK 58** band (React 19.3, React Native 0.88, Reanimated 4.7, Worklets 0.13, Gesture Handler 3, Skia 2.14, `expo-file-system` 58, `expo-gl` 58). The engine develops against SDK 58 only. An older or a newer SDK is outside the ranges. Keep `react-native-worklets/plugin` as the **last** plugin in `babel.config.js`:
 
 ```js
 // babel.config.js
@@ -1463,7 +1463,7 @@ The renderer mounts a single `<GLView>`. On `onContextCreate` it builds an `expo
 
 Why JS-thread, not UI-thread: the `expo-gl` context lives on the JS thread, so the Reanimated UI-thread snapshot trick the Skia renderer uses doesn't apply — and isn't needed. The simulation already runs on the JS thread, so the renderer reads the ECS TypedArrays directly with no cloning, no per-frame `ArrayBuffer` allocation.
 
-**`expo-gl` 57 and three r163+.** `expo-gl` 57 makes a WebGL 2 context an instance of `WebGLRenderingContext`. Browsers keep the two classes separate, and three r163 and later throw `WebGL 1 is not supported since r163` for such a context. The renderer hides the global `WebGLRenderingContext` while it constructs the `expo-three` `Renderer`, then restores it. Three reads that global only in the constructor, so nothing else changes. If you construct your own `THREE.WebGLRenderer` from an `expo-gl` context, apply the same workaround. Tracked in [expo/expo#51543](https://github.com/expo/expo/issues/51543).
+**`expo-gl` before 58.0.4 and three r163+.** `expo-gl` before 58.0.4 makes a WebGL 2 context an instance of `WebGLRenderingContext`. Browsers keep the two classes separate, and three r163 and later throw `WebGL 1 is not supported since r163` for such a context. `expo-gl` 58.0.4 fixes this in native code, so an Expo Go build can still have the bug. The renderer hides the global `WebGLRenderingContext` while it constructs the `expo-three` `Renderer`, then restores it. Three reads that global only in the constructor, so nothing else changes. If you construct your own `THREE.WebGLRenderer` from an `expo-gl` context, apply the same workaround. Tracked in [expo/expo#51543](https://github.com/expo/expo/issues/51543).
 
 ---
 
