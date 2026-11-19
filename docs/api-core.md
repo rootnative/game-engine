@@ -232,7 +232,7 @@ interface TouchEvent {
 }
 ```
 
-Sourced from Gesture Handler's modern `Gesture.Pan` / `Gesture.Tap` / `Gesture.LongPress`. Multi-touch is not yet wired — `id` is hardcoded to `0`.
+Sourced from Gesture Handler's `usePanGesture` / `useTapGesture` / `useLongPressGesture` hooks. Multi-touch is not yet wired — `id` is hardcoded to `0`.
 
 ---
 

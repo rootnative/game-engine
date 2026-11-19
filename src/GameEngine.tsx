@@ -8,8 +8,16 @@ import {
   type ReactNode,
 } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { useSharedValue } from 'react-native-reanimated';
+import {
+  GestureDetector,
+  useLongPressGesture,
+  usePanGesture,
+  useSimultaneousGestures,
+  useTapGesture,
+  type LongPressGestureConfig,
+  type PanGestureConfig,
+  type TapGestureConfig,
+} from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { createLoop, type Loop } from './core/loop';
@@ -80,44 +88,58 @@ export function GameEngine({
     [loop],
   );
 
-  const prevTx = useSharedValue(0);
-  const prevTy = useSharedValue(0);
-
-  const gesture = useMemo(() => {
-    const pan = Gesture.Pan()
-      .onBegin((e) => {
+  const panConfig = useMemo<PanGestureConfig>(
+    () => ({
+      onBegin: (e) => {
         'worklet';
-        prevTx.value = 0;
-        prevTy.value = 0;
         scheduleOnRN(pushTouch, { id: 0, type: 'start', x: e.x, y: e.y, t: Date.now() });
-      })
-      .onUpdate((e) => {
+      },
+      onUpdate: (e) => {
         'worklet';
-        const dx = e.translationX - prevTx.value;
-        const dy = e.translationY - prevTy.value;
-        prevTx.value = e.translationX;
-        prevTy.value = e.translationY;
-        scheduleOnRN(pushTouch, { id: 0, type: 'move', x: e.x, y: e.y, dx, dy, t: Date.now() });
-      })
-      .onEnd((e) => {
+        scheduleOnRN(pushTouch, {
+          id: 0,
+          type: 'move',
+          x: e.x,
+          y: e.y,
+          dx: e.changeX,
+          dy: e.changeY,
+          t: Date.now(),
+        });
+      },
+      onDeactivate: (e) => {
         'worklet';
         scheduleOnRN(pushTouch, { id: 0, type: 'end', x: e.x, y: e.y, t: Date.now() });
-      });
+      },
+    }),
+    [pushTouch],
+  );
 
-    const tap = Gesture.Tap().onEnd((e, success) => {
-      'worklet';
-      if (!success) return;
-      scheduleOnRN(pushTouch, { id: 0, type: 'tap', x: e.x, y: e.y, t: Date.now() });
-    });
+  const tapConfig = useMemo<TapGestureConfig>(
+    () => ({
+      onDeactivate: (e) => {
+        'worklet';
+        if (e.canceled) return;
+        scheduleOnRN(pushTouch, { id: 0, type: 'tap', x: e.x, y: e.y, t: Date.now() });
+      },
+    }),
+    [pushTouch],
+  );
 
-    const longPress = Gesture.LongPress().onEnd((e, success) => {
-      'worklet';
-      if (!success) return;
-      scheduleOnRN(pushTouch, { id: 0, type: 'long-press', x: e.x, y: e.y, t: Date.now() });
-    });
+  const longPressConfig = useMemo<LongPressGestureConfig>(
+    () => ({
+      onDeactivate: (e) => {
+        'worklet';
+        if (e.canceled) return;
+        scheduleOnRN(pushTouch, { id: 0, type: 'long-press', x: e.x, y: e.y, t: Date.now() });
+      },
+    }),
+    [pushTouch],
+  );
 
-    return Gesture.Simultaneous(pan, tap, longPress);
-  }, [pushTouch, prevTx, prevTy]);
+  const pan = usePanGesture(panConfig);
+  const tap = useTapGesture(tapConfig);
+  const longPress = useLongPressGesture(longPressConfig);
+  const gesture = useSimultaneousGestures(pan, tap, longPress);
 
   return (
     <EngineContext.Provider value={loop}>

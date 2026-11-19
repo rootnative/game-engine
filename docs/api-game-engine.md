@@ -166,15 +166,15 @@ The two patterns differ only in where suspension happens; the swap behavior is i
 
 ## Input pipeline
 
-`<GameEngine>` wraps its content in a `<GestureDetector>` composed of three modern Gestures:
+`<GameEngine>` wraps its content in a `<GestureDetector>` composed of three gestures from the Gesture Handler 3 hook API:
 
 | Gesture | Emits |
 | --- | --- |
-| `Gesture.Pan` | `start` (on begin), `move` (on update, with `dx`/`dy`), `end` |
-| `Gesture.Tap` | `tap` |
-| `Gesture.LongPress` | `long-press` |
+| `usePanGesture` | `start` (on begin), `move` (on update, with `dx`/`dy`), `end` |
+| `useTapGesture` | `tap` |
+| `useLongPressGesture` | `long-press` |
 
-All three run **simultaneously** (`Gesture.Simultaneous`) on the UI thread. Each gesture handler is a worklet that calls `scheduleOnRN(loop.pushTouch, event)` to enqueue a [`TouchEvent`](./api-core.md#touch-events) for the next sim step.
+All three run **simultaneously** (`useSimultaneousGestures`) on the UI thread. Each gesture callback is a worklet that calls `scheduleOnRN(loop.pushTouch, event)` to enqueue a [`TouchEvent`](./api-core.md#touch-events) for the next sim step.
 
 The sim loop drains `ctx.input.touches` at the end of every step, so each event is visible to systems in exactly one tick.
 
