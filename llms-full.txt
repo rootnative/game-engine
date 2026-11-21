@@ -1293,7 +1293,7 @@ A component with `{ atlas: 'u32'; frame: 'u16'; tint: 'u32' }`:
 
 - **`atlas`** — index into the `atlases` array. The renderer reads `atlases.value[atlas]` to find the source image.
 - **`frame`** — index into that atlas's `frames` array. Picks which sub-rect of the atlas image to draw.
-- **`tint`** — packed RGBA color. Reserved for tinting; **not yet read** by the renderer.
+- **`tint`** — a packed `0xRRGGBBAA` color. The renderer multiplies each pixel of the sprite by it: `0xff0000ff` keeps only the red channel, and the alpha byte fades the sprite. `0` and `0xffffffff` draw the sprite unchanged. `0` means no tint, because `addComponent` writes `0` to each field that you don't give.
 
 Only entities that have **both** `position` and `sprite` are drawn.
 
@@ -1418,35 +1418,41 @@ for (let a = 0; a < atlases.value.length; a++) {
   //   scale = 1, radians = 0,
   //   tx = position.x - f.width  * 0.5,
   //   ty = position.y - f.height * 0.5
+  // colors[n] is the sprite's tint, as 4 floats from 0 to 1.
 
-  canvas.drawAtlas(atlas.image, srcs, dsts, paint); // antialiased, no tint
+  if (anyTint) {
+    canvas.drawAtlas(atlas.image, srcs, dsts, paint, BlendMode.Modulate, colors);
+  } else {
+    canvas.drawAtlas(atlas.image, srcs, dsts, paint); // antialiased
+  }
 }
 ```
 
-The `SkHostRect` and `SkRSXform` instances are pooled across worklet runs and mutated in place (`setXYWH` / `set`), so the inner loop allocates nothing in steady state. Pools grow monotonically as entity counts climb.
+The `SkHostRect`, `SkRSXform` and color instances are pooled across worklet runs and mutated in place (`setXYWH` / `set`), so the inner loop allocates nothing in steady state. Pools grow monotonically as entity counts climb.
 
 So:
 
 - **Origin is centered.** `(position.x, position.y)` is the *center* of the drawn frame.
 - **No rotation, no per-entity scale.** Scale is set per-frame at atlas-build time.
-- **No tint.** The `tint` field is reserved for when paint masking lands.
+- **Tints multiply.** A batch with at least one tint draws with `BlendMode.Modulate` and one color for each sprite. A batch with no tint draws with no colors.
 
 ---
 
 ## How frames flow
 
 1. **Sim step ends.** The engine fires registered `loop.onAfterStep` callbacks once per tick that produced ≥1 step.
-2. **Renderer's `onAfterStep` callback runs on the JS thread.** It scans `[0, world.nextId)` and packs every drawable entity into a fresh `Float32Array(count * 4)`:
+2. **Renderer's `onAfterStep` callback runs on the JS thread.** It scans `[0, world.nextId)` and packs every drawable entity into a fresh `Float32Array(count * 8)`:
    ```
-   [x0, y0, atlas0, frame0, x1, y1, atlas1, frame1, ...]
+   [x0, y0, atlas0, frame0, r0, g0, b0, a0, x1, y1, ...]
    ```
+   The tint goes in as 4 bytes (0 to 255), because a `Float32Array` can't hold each 32-bit value exactly.
 3. **Assigning `packed.value = out` triggers Reanimated to clone the array to the UI thread.**
 4. **The UI-thread `useDerivedValue` worklet wakes up.** It reads `packed.value` and `atlases.value`, builds an `SkPicture` with one batched `drawAtlas` call per atlas.
 5. **The `<Picture>` element draws the picture.**
 
 > **Reanimated 4 does not zero-copy TypedArrays** (`react-native-worklets` clones every `ArrayBuffer` / `ArrayBufferView` in `cloneArrayBuffer` / `cloneArrayBufferView`). The renderer pushes a fresh snapshot each frame; assigning a new `SharedValue` reference is what makes Reanimated re-clone.
 >
-> Cost: `world.nextId * 4 * 4` bytes copied per render frame — at phase-1 entity counts (≤200), this is comfortably negligible.
+> Cost: 32 bytes for each drawn sprite, copied each render frame.
 
 ---
 
@@ -1456,7 +1462,7 @@ So:
 - **Snapshot, not iteration over the live world.** The worklet never touches `World` directly — Reanimated would have to clone the entire structure on every assignment.
 - **Per-frame allocation: one `Float32Array`.** This one is required, not an oversight — Reanimated caches `ArrayBuffer` clones keyed by the JS-side buffer, so reusing a pooled buffer would make the worklet read stale bytes. A fresh allocation per frame is what forces the re-clone.
 - **One `drawAtlas` call per atlas, not per entity.** Pack the scene into few atlases and the draw-call count stays flat as entity count grows.
-- **Pooled rects and transforms.** `SkHostRect` / `SkRSXform` instances are reused across frames and mutated in place, so the draw loop is allocation-free in steady state.
+- **Pooled rects, transforms and colors.** `SkHostRect` / `SkRSXform` / color instances are reused across frames and mutated in place, so the draw loop is allocation-free in steady state.
 
 ---
 
@@ -1469,7 +1475,6 @@ Hardcoded to `#fafafa` via the `<Canvas>`'s `backgroundColor` style, and **not c
 ## Limitations / roadmap
 
 - **Components named in props, not declared by renderer.** The renderer assumes its `position` and `sprite` props match the schemas above. There's no formal "renderer-component-API" yet — designing one is on the roadmap so renderers can declare which components they read.
-- **`tint` not yet wired.** The field is accepted in the schema but ignored at draw time.
 - **No rotation, no per-entity scale.** Per-frame size is fixed at atlas-build time.
 - **One canvas, one z-order.** Entities draw in entity-id order. There's no z-sort yet — add a `z: 'i16'` field to the sprite component and sort the snapshot if you need it.
 
