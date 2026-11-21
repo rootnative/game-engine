@@ -9,6 +9,7 @@ on:
       - main
     paths:
       - "src/**"
+      - "test/**"
       - "example/**"
       - "example-3d/**"
       - "docs/**"
@@ -20,6 +21,7 @@ on:
       - "pnpm-workspace.yaml"
       - "tsconfig.json"
       - "tsconfig.build.json"
+      - "vitest.config.mts"
       - ".nvmrc"
       - ".npmrc"
       - ".prettierrc"
@@ -28,6 +30,7 @@ on:
   pull_request:
     paths:
       - "src/**"
+      - "test/**"
       - "example/**"
       - "example-3d/**"
       - "docs/**"
@@ -39,6 +42,7 @@ on:
       - "pnpm-workspace.yaml"
       - "tsconfig.json"
       - "tsconfig.build.json"
+      - "vitest.config.mts"
       - ".nvmrc"
       - ".npmrc"
       - ".prettierrc"
@@ -81,6 +85,9 @@ jobs:
       # at `src/`, so this step checks the source and not a stale build.
       - name: Typecheck
         run: pnpm run typecheck
+
+      - name: Test
+        run: pnpm run test
 
       - name: Build package
         run: pnpm run build
