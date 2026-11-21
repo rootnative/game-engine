@@ -36,8 +36,8 @@ function setup(systems: System[], options: LoopOptions = {}) {
   return { world, loop }
 }
 
-function touch(type: TouchEvent['type']): TouchEvent {
-  return { id: 0, type, x: 0, y: 0, t: 0 }
+function touch(type: TouchEvent['type'], x = 0, y = 0): TouchEvent {
+  return { id: 0, type, x, y, t: 0 }
 }
 
 describe('createLoop timing', () => {
@@ -259,5 +259,76 @@ describe('createLoop lifecycle', () => {
     unsubscribe()
     advance(STEP)
     expect(listener).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('createLoop pointers', () => {
+  type PointerState = { id: number; x: number; y: number; down: boolean }
+
+  function recordPointers() {
+    const seen: PointerState[][] = []
+    const system: System = (_world, ctx) => {
+      seen.push(ctx.input.pointers.map((p) => ({ ...p })))
+    }
+    const { loop, world } = setup([system])
+    loop.start()
+    return { loop, world, system, seen }
+  }
+
+  it('has no pointer before the first touch', () => {
+    const { seen } = recordPointers()
+    advance(STEP)
+    expect(seen).toEqual([[]])
+  })
+
+  it('follows one finger from start to end', () => {
+    const { loop, seen } = recordPointers()
+    loop.pushTouch(touch('start', 10, 20))
+    advance(STEP)
+    loop.pushTouch(touch('move', 15, 25))
+    advance(STEP)
+    loop.pushTouch(touch('end', 16, 26))
+    advance(STEP)
+    expect(seen).toEqual([
+      [{ id: 0, x: 10, y: 20, down: true }],
+      [{ id: 0, x: 15, y: 25, down: true }],
+      [{ id: 0, x: 16, y: 26, down: false }],
+    ])
+  })
+
+  it('shows the state after the touches of the step', () => {
+    const { loop, seen } = recordPointers()
+    loop.pushTouch(touch('start', 5, 6))
+    loop.pushTouch(touch('tap', 5, 6))
+    loop.pushTouch(touch('end', 5, 6))
+    advance(STEP)
+    expect(seen).toEqual([[{ id: 0, x: 5, y: 6, down: false }]])
+  })
+
+  it('keeps the pointer when its touches are gone', () => {
+    const { loop, seen } = recordPointers()
+    loop.pushTouch(touch('start', 1, 2))
+    advance(STEP * 3)
+    expect(seen).toEqual([
+      [{ id: 0, x: 1, y: 2, down: true }],
+      [{ id: 0, x: 1, y: 2, down: true }],
+      [{ id: 0, x: 1, y: 2, down: true }],
+    ])
+  })
+
+  it('makes no pointer from a tap or a long-press', () => {
+    const { loop, seen } = recordPointers()
+    loop.pushTouch(touch('tap', 1, 2))
+    loop.pushTouch(touch('long-press', 1, 2))
+    advance(STEP)
+    expect(seen).toEqual([[]])
+  })
+
+  it('keeps the pointer state through a swap', () => {
+    const { loop, world, system, seen } = recordPointers()
+    loop.pushTouch(touch('start', 3, 4))
+    loop.swap(world, [system])
+    advance(STEP)
+    expect(seen).toEqual([[{ id: 0, x: 3, y: 4, down: true }]])
   })
 })

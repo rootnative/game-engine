@@ -114,7 +114,11 @@ export function GameEngine({
           t: Date.now(),
         })
       },
-      onDeactivate: (e) => {
+      // `onFinalize`, not `onDeactivate`: it runs after each gesture that
+      // began, also when the pan never activated (a tap, or a touch that
+      // doesn't move). So each `start` gets an `end`, and the pointer state
+      // doesn't stay down.
+      onFinalize: (e) => {
         'worklet'
         scheduleOnRN(pushTouch, {
           id: 0,

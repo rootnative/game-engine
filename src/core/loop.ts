@@ -26,6 +26,8 @@ export interface Loop {
   readonly onAfterStep: (cb: () => void) => () => void
 }
 
+type MutablePointer = { -readonly [K in keyof Pointer]: Pointer[K] }
+
 const now = (): number =>
   typeof performance !== 'undefined' && typeof performance.now === 'function'
     ? performance.now()
@@ -46,7 +48,7 @@ export function createLoop(
 
   const ctx = {
     time: { current: 0, previous: 0, delta: stepS, alpha: 1 },
-    input: { touches: [] as TouchEvent[], pointers: [] as Pointer[] },
+    input: { touches: [] as TouchEvent[], pointers: [] as MutablePointer[] },
     screen: { width: 0, height: 0 },
     events: [] as GameEvent[],
     dispatch(e: GameEvent) {
@@ -61,6 +63,27 @@ export function createLoop(
   let lastWall = 0
   let acc = 0
   const afterStep: Array<() => void> = []
+
+  // The pointer state changes when a touch arrives, not when a step reads
+  // it. So a step sees the state after its touches, and a swap, which drops
+  // the queued touches, keeps the state of a finger that is still down.
+  const trackPointer = (e: TouchEvent): void => {
+    const pointers = ctx.input.pointers
+    let pointer: MutablePointer | undefined
+    for (let i = 0; i < pointers.length; i++) {
+      if (pointers[i].id === e.id) {
+        pointer = pointers[i]
+        break
+      }
+    }
+    if (pointer === undefined) {
+      pointer = { id: e.id, x: 0, y: 0, down: false }
+      pointers.push(pointer)
+    }
+    pointer.x = e.x
+    pointer.y = e.y
+    pointer.down = e.type !== 'end'
+  }
 
   const step = (): void => {
     ctx.time.previous = ctx.time.current
@@ -144,6 +167,9 @@ export function createLoop(
     },
     pushTouch(e): void {
       ctx.input.touches.push(e)
+      if (e.type === 'start' || e.type === 'move' || e.type === 'end') {
+        trackPointer(e)
+      }
     },
     onAfterStep(cb): () => void {
       afterStep.push(cb)

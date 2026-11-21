@@ -214,7 +214,7 @@ interface FrameContext {
 - **`time.delta`** is the fixed step (default `1/60`s). Use it to integrate velocities — it does **not** change frame to frame.
 - **`time.alpha`** is **reserved and not yet computed** — the loop initializes it to `1` and never updates it. It is intended as the fixed-timestep interpolation factor for renderers, but no renderer reads it today and neither the Skia nor the three renderer interpolates between sim states. Don't build on it yet.
 - **`input.touches`** is drained at the end of every step. Read events early in your system list.
-- **`input.pointers`** is **reserved and always empty** — nothing populates it. Use `input.touches` for input today.
+- **`input.pointers`** is the state of each pointer after the touches of this step. It's empty until the first touch. Then it holds one entry, for pointer `0`. Unlike `touches`, it stays from step to step, and a `swap` keeps it. Use it to ask "is a finger down, and where?" (see [Pointers](#pointers)).
 - **`screen`** is set from the `<GameEngine>` view's `onLayout`.
 - **`dispatch(event)`** queues a `GameEvent` for the *current* tick. `events` is drained at end of step.
 
@@ -233,6 +233,30 @@ interface TouchEvent {
 ```
 
 Sourced from Gesture Handler's `usePanGesture` / `useTapGesture` / `useLongPressGesture` hooks. Multi-touch is not yet wired — `id` is hardcoded to `0`.
+
+Each `start` gets an `end`, also when the finger doesn't move. A tap sends `start`, `tap` and `end`. The order of `tap` and `end` can change from one tap to the next.
+
+### Pointers
+
+```ts
+interface Pointer {
+  readonly id: number;            // pointer id (currently always 0)
+  readonly x: number;             // the position of the last start, move or end
+  readonly y: number;
+  readonly down: boolean;         // true from start to end
+}
+```
+
+`start`, `move` and `end` change the pointer. `tap` and `long-press` don't.
+
+```ts
+const aim: System = (world, ctx) => {
+  const pointer = ctx.input.pointers[0];
+  if (pointer?.down) {
+    // point the cannon at (pointer.x, pointer.y)
+  }
+};
+```
 
 ---
 

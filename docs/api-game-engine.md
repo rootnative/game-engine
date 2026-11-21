@@ -170,13 +170,15 @@ The two patterns differ only in where suspension happens; the swap behavior is i
 
 | Gesture | Emits |
 | --- | --- |
-| `usePanGesture` | `start` (on begin), `move` (on update, with `dx`/`dy`), `end` |
+| `usePanGesture` | `start` (on begin), `move` (on update, with `dx`/`dy`), `end` (on finalize) |
 | `useTapGesture` | `tap` |
 | `useLongPressGesture` | `long-press` |
 
 All three run **simultaneously** (`useSimultaneousGestures`) on the UI thread. Each gesture callback is a worklet that calls `scheduleOnRN(loop.pushTouch, event)` to enqueue a [`TouchEvent`](./api-core.md#touch-events) for the next sim step.
 
 The sim loop drains `ctx.input.touches` at the end of every step, so each event is visible to systems in exactly one tick.
+
+The pan sends `end` from `onFinalize`, which runs after each gesture that began, also when the pan never activated. So each `start` gets an `end`, also for a tap or a touch that doesn't move. The loop keeps the pointer state from these events in [`ctx.input.pointers`](./api-core.md#pointers).
 
 > Pointer ids are hardcoded to `0`. Multi-touch isn't wired yet — `Pan` / `Tap` / `LongPress` from Gesture Handler don't expose individual pointers.
 
