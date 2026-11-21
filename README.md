@@ -34,18 +34,9 @@ npx expo install \
 
 That's the 2D set. For the 3D renderer, add `expo-gl`, `expo-three`, and `three` — see [Subpath exports](#subpath-exports).
 
-All of the above are **peer dependencies** — your Expo app owns the SDK version, and the declared ranges are the **Expo SDK 58** band (React 19.3, React Native 0.88, Reanimated 4.7, Worklets 0.13, Gesture Handler 3, Skia 2.14, `expo-file-system` 58, `expo-gl` 58). The engine develops against SDK 58 only. An older or a newer SDK is outside the ranges. Keep `react-native-worklets/plugin` as the **last** plugin in `babel.config.js`:
+All of the above are **peer dependencies** — your Expo app owns the SDK version, and the declared ranges are the **Expo SDK 58** band (React 19.3, React Native 0.88, Reanimated 4.7, Worklets 0.13, Gesture Handler 3, Skia 2.14, `expo-file-system` 58, `expo-gl` 58). The engine develops against SDK 58 only. An older or a newer SDK is outside the ranges.
 
-```js
-// babel.config.js
-module.exports = function (api) {
-  api.cache(true);
-  return {
-    presets: ['babel-preset-expo'],
-    plugins: ['react-native-worklets/plugin'],
-  };
-};
-```
+You need no Babel setup. `babel-preset-expo` adds `react-native-worklets/plugin` when `react-native-worklets` is installed, so don't add the plugin yourself.
 
 Wrap your app root with `GestureHandlerRootView` (Gesture Handler requirement).
 
