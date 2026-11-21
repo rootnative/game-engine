@@ -15,7 +15,7 @@ They never block each other. The render side reads the latest snapshot the sim h
 
 Two details where the implementation is narrower than the ideal:
 
-- **No interpolation yet.** The renderers draw the latest sim state. They don't blend between the two most recent sim states.
+- **No interpolation.** The renderers draw the latest sim state. They don't blend between the two most recent sim states.
 - **The three renderer runs on the JS thread**, not the UI thread — the `expo-gl` context lives there, so the worklet trick doesn't apply. It reads the ECS buffers directly, which costs nothing extra because the sim is on that thread anyway.
 
 This decoupling is the point. A naive `requestAnimationFrame` + `setState` loop ties simulation and rendering to one thread (JS) and forces React to reconcile on every frame. That's the bottleneck the engine is shaped to avoid.
@@ -59,7 +59,7 @@ const movement: System = (world, ctx) => {
 };
 ```
 
-Bitmask scans are O(N) over the world capacity per query. Archetype-based queries (one bucket per component combination) are a phase-1.5 optimization gated on profiling — the public API stays the same.
+A bitmask scan is O(N) per query, where N is `world.nextId`, the highest entity id so far.
 
 ## 4. Renderer is pluggable
 
@@ -79,8 +79,8 @@ src/
   physics/      Custom AABB + circles solver
   assets/       Bundled + remote asset loader (Suspense-friendly)
   renderers/
-    skia/       Phase 1 renderer (2D)
-    three/      Phase 2 renderer (3D) + glTF loader
+    skia/       2D renderer
+    three/      3D renderer + glTF loader
 ```
 
 ## Performance rules the engine enforces

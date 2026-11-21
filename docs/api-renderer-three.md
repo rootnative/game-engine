@@ -89,7 +89,7 @@ type CameraComponent = Component<{
 
 The first alive entity carrying both `transform` and `camera` with `active === 1` becomes the rendering camera each frame. Position and rotation are read from `transform` (XYZ Euler, default forward is `-Z`). `fov` / `near` / `far` are diffed against the live `THREE.PerspectiveCamera`; the projection matrix is rebuilt only when one of them changes.
 
-If no entity matches, the default camera (configured by `setupScene` or the `(0, 0, 5)` factory default) is used unchanged. So the camera prop is fully optional — leave it off and the renderer behaves like slice 1.
+If no entity matches, the default camera (configured by `setupScene` or the `(0, 0, 5)` factory default) is used unchanged. So the camera prop is fully optional — leave it off and the renderer uses the default camera.
 
 ### `ambientLight`
 
@@ -230,13 +230,13 @@ addComponent(world, entity, mesh, { mesh: 1 }); // first glTF mesh
 
 - **`.glb` only.** A `.gltf` file that references external `.bin` / image resources won't resolve them — the loader's resource manager isn't wired through the asset pipeline. Convert to `.glb` (single-file binary) at export time.
 - **Embedded textures inside `.glb` may not decode in all React Native environments.** Three.js's image decoding goes through the global `Image` constructor, which Expo Go polyfills but doesn't guarantee for every codec. Plain-geometry / vertex-color models are the safest path; verify on device for textured assets.
-- **No animation / skeleton helpers.** The parsed `GLTF.animations` / `GLTF.scene.animations` are passed through unchanged, but there's no engine-level integration with `THREE.AnimationMixer` yet — drive it manually if you need it.
+- **No animation / skeleton helpers.** The parsed `GLTF.animations` / `GLTF.scene.animations` are passed through unchanged, but there's no engine-level integration with `THREE.AnimationMixer` — drive it manually if you need it.
 
 ---
 
-## Limitations / roadmap
+## Limitations
 
-- **No camera target component.** Directional lights default-target the origin; `PerspectiveCamera` is oriented purely from Euler rotation. There's no `LookAt` component yet — animate `transform.r{x,y,z}` to point things, or grab the camera ref via `setupScene`.
+- **No camera target component.** Directional lights default-target the origin; `PerspectiveCamera` is oriented purely from Euler rotation. There's no `LookAt` component — animate `transform.r{x,y,z}` to point things, or grab the camera ref via `setupScene`.
 - **`Map<EntityId, _>` iterators allocate.** The dead-entry sweep at the end of each pass uses `Map.forEach`, which allocates an iterator per pass. Negligible at prototype counts; switch to parallel arrays if profiling says it matters.
 - **`mesh` index changes reassign `obj.geometry` / `obj.material`.** Three.js GC behavior on rapid swaps isn't fully verified — treat the mesh index as effectively static per entity for now.
 - **Single active camera.** The first entity with `active === 1` wins; there's no view-stacking, picture-in-picture, or split-screen support.

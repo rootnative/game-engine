@@ -31,7 +31,7 @@ The first release. A 2D and 3D game engine for React Native that runs inside Exp
 - **The physics has no rotation, no joints, and no polygons.**
 - **`attach` and `detach` are imperative.** There is no declarative physics body component.
 - **The Skia renderer has no rotation and no per-entity scale.** It draws each sprite at the size of its atlas frame.
-- **The renderers take their components as props with fixed schemas.** A renderer cannot yet declare which components it reads.
+- **The renderers take their components as props with fixed schemas.** A renderer can't declare which components it reads.
 - **The 3D renderer loads `.glb` only.** A `.gltf` file with external resources does not load. There is no `LookAt` component, only one camera can be active, and there is no animation or skinning support.
 - **The remote asset cache uses the URL as the key, not the content.** If a URL can serve different bytes, put a version in the URL or call `clearAssetCache()`.
 - **No WebAssembly.** Expo Go runs Hermes, which does not support WebAssembly. So physics engines such as `rapier` and `box2d-wasm` cannot run.

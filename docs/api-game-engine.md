@@ -197,7 +197,7 @@ The sim loop drains `ctx.input.touches` at the end of every step, so each event 
 
 The pan sends `end` from `onFinalize`, which runs after each gesture that began, also when the pan never activated. So each `start` gets an `end`, also for a tap or a touch that doesn't move. The loop keeps the pointer state from these events in [`ctx.input.pointers`](./api-core.md#pointers).
 
-> Pointer ids are hardcoded to `0`. Multi-touch isn't wired yet — `Pan` / `Tap` / `LongPress` from Gesture Handler don't expose individual pointers.
+> Input is single-touch: each event has the pointer id `0`. The pan, tap and long-press gestures don't give an id for each finger.
 
 ---
 

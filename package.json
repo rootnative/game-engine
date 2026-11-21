@@ -1,7 +1,7 @@
 {
   "name": "@rootnative/game-engine",
   "version": "0.0.0-alpha.1",
-  "description": "2D (and soon 3D) game engine for React Native + Expo Go. Skia-based renderer, ECS core, fixed-timestep loop, no native code.",
+  "description": "2D and 3D game engine for React Native and Expo Go: an ECS core, a fixed-timestep loop, a Skia renderer and a three.js renderer, with no native code.",
   "keywords": [
     "expo",
     "expo-go",
@@ -9,8 +9,10 @@
     "game-engine",
     "ecs",
     "skia",
+    "three",
     "reanimated",
-    "2d"
+    "2d",
+    "3d"
   ],
   "license": "MIT",
   "sideEffects": false,

@@ -1,8 +1,8 @@
 # @rootnative/game-engine
 
-> A 2D (and soon 3D) ECS-based game engine for React Native that runs inside Expo Go — no custom native modules, no `expo prebuild`. Skia renderer, fixed-timestep simulation on the JS thread, render loop on the UI thread via Reanimated worklets, custom circles + AABB physics, Suspense-friendly asset loader.
+> A 2D and 3D ECS-based game engine for React Native that runs inside Expo Go — no custom native modules, no `expo prebuild`. Skia and three.js renderers, fixed-timestep simulation on the JS thread, custom circles + AABB physics, Suspense-friendly asset loader.
 
-The engine is split into a renderer-agnostic core (ECS, world, loop, input, assets, math) and pluggable renderers under subpath imports. Phase 1 ships `<SkiaRenderer>`; Phase 2 ships `<ThreeRenderer>` on `expo-gl` + `expo-three` with ECS-driven camera and lights. Both renderers run behind the same engine core. Entities are integer ids; components are TypedArray-backed schemas; queries are O(N) bitmask scans. The simulation runs on the JS thread at a fixed 60 Hz timestep, while the render side runs as Reanimated worklets on the UI thread, reading shared snapshots — there is no React reconciliation per frame.
+The engine is split into a renderer-agnostic core (ECS, world, loop, input, assets, math) and pluggable renderers under subpath imports. It ships `<SkiaRenderer>` (2D) and `<ThreeRenderer>` (3D, on `expo-gl` + `expo-three`, with ECS-driven camera and lights). Both renderers run behind the same engine core. Entities are integer ids; components are TypedArray-backed schemas; queries are O(N) bitmask scans. The simulation runs on the JS thread at a fixed 60 Hz timestep. The Skia renderer draws in a Reanimated worklet on the UI thread from a snapshot of each step; the three.js renderer reads the component buffers on the JS thread. Neither makes React render once per frame.
 
 For a runnable minimal example, see the README.
 

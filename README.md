@@ -7,17 +7,17 @@
 
 # @rootnative/game-engine
 
-A 2D (and soon 3D) game engine for React Native built to run inside **Expo Go** — no custom native modules, no `expo prebuild`, no config plugins.
+A 2D and 3D game engine for React Native, built to run inside **Expo Go** — no custom native modules, no `expo prebuild`, no config plugins.
 
 - **ECS core** — integer entity ids, TypedArray-backed component buffers, bitmask queries
-- **Two-loop architecture** — fixed-timestep simulation on the JS thread, render loop on the UI thread
+- **Two-loop architecture** — fixed-timestep simulation on the JS thread, and a render loop of its own (the Skia renderer draws on the UI thread)
 - **Skia renderer (2D)** — single `<Canvas>` driven by Reanimated worklets; batched `drawAtlas`, no React reconciliation per frame
 - **Three.js renderer (3D)** — `expo-gl` + `expo-three`, ECS-driven meshes, camera, and lights, with a `.glb` loader
 - **Physics** — custom circles + AABB solver tailored to arcade games (no rotation, no joints, ~5–10× faster than a JS Box2D port for stacked-circle workloads)
 - **Asset pipeline** — bundled (`require`) and remote (URL) assets behind one Suspense-friendly API
 - **Input** — Gesture Handler's hook API on the UI thread
 
-> **Status: `0.0.0-alpha.1`, the first alpha.** APIs may shift. See the [CHANGELOG](https://github.com/rootnative/game-engine/blob/main/CHANGELOG.md). Phase 1 (2D) is functionally complete and dogfooded in `example/`. Phase 2 (3D, `expo-gl` + three.js) runs behind the same engine core with no rewrite — meshes, camera, lights, and `.glb` loading all work, demoed in `example-3d/`.
+> **Status: `0.0.0-alpha.1`, the first alpha.** APIs may shift. See the [CHANGELOG](https://github.com/rootnative/game-engine/blob/main/CHANGELOG.md). The 2D renderer (Skia) and the 3D renderer (`expo-gl` and three.js) run behind the same engine core. The `example/` and `example-3d/` apps in the repository show each one.
 
 ## Install
 
@@ -125,8 +125,8 @@ npx expo install expo-gl expo-three three@0.166
 
 - **Expo Go only on the supported path.** Custom dev builds work too, but the engine deliberately avoids anything that would force one.
 - **Hermes is the JS engine.** No WebAssembly. That rules out `rapier`/`box2d-wasm`-style physics.
-- **Single-touch input today.** Gesture pointer ids are hardcoded to `0` — multi-touch is on the roadmap.
-- **Naive O(N²) broadphase.** Comfortable up to ~200 dynamic bodies; spatial-hash broadphase will land before pushing past that.
+- **Single-touch input.** Each touch has the pointer id `0`.
+- **O(N²) broadphase.** Each dynamic body is tested against each other one. Comfortable up to ~200 dynamic bodies.
 
 ## License
 

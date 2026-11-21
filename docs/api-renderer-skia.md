@@ -223,12 +223,12 @@ So:
 
 ## Background color
 
-Hardcoded to `#fafafa` via the `<Canvas>`'s `backgroundColor` style, and **not configurable today** — there's no prop for it. The background is opaque and painted by the canvas itself, so wrapping the renderer in a `<View>` of a different color will not show through. Changing it means editing `SkiaRenderer.tsx`, or drawing a full-screen rect as the first entity. A `backgroundColor` prop is on the roadmap.
+Hardcoded to `#fafafa` via the `<Canvas>`'s `backgroundColor` style, and **not configurable** — there's no prop for it. The background is opaque and painted by the canvas itself, so wrapping the renderer in a `<View>` of a different color will not show through. Changing it means editing `SkiaRenderer.tsx`, or drawing a full-screen rect as the first entity.
 
 ---
 
-## Limitations / roadmap
+## Limitations
 
-- **Components named in props, not declared by renderer.** The renderer assumes its `position` and `sprite` props match the schemas above. There's no formal "renderer-component-API" yet — designing one is on the roadmap so renderers can declare which components they read.
+- **Components named in props, not declared by renderer.** The renderer assumes its `position` and `sprite` props match the schemas above. A renderer can't declare which components it reads.
 - **No rotation, no per-entity scale.** Per-frame size is fixed at atlas-build time.
-- **One canvas, one z-order.** Entities draw in entity-id order. There's no z-sort yet — add a `z: 'i16'` field to the sprite component and sort the snapshot if you need it.
+- **One canvas, one draw order.** The renderer draws atlas by atlas, in the order of `atlases.value`, and the sprites of one atlas in entity-id order. There's no z-sort. To draw a sprite above another, put it in a later atlas, or give it a higher entity id.

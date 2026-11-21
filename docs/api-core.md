@@ -14,7 +14,7 @@ import {
 } from '@rootnative/game-engine';
 ```
 
-Everything here is renderer-agnostic. The same imports work whether you render with Skia today or `expo-gl` + three.js later.
+Everything here is renderer-agnostic. The same imports work with the Skia renderer and with the three.js renderer.
 
 ---
 
@@ -233,7 +233,7 @@ interface TouchEvent {
 }
 ```
 
-Sourced from Gesture Handler's `usePanGesture` / `useTapGesture` / `useLongPressGesture` hooks. Multi-touch is not yet wired — `id` is hardcoded to `0`.
+Sourced from Gesture Handler's `usePanGesture` / `useTapGesture` / `useLongPressGesture` hooks. Input is single-touch: `id` is always `0`.
 
 Each `start` gets an `end`, also when the finger doesn't move. A tap sends `start`, `tap` and `end`. The order of `tap` and `end` can change from one tap to the next.
 

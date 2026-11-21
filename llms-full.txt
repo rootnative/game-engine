@@ -28,17 +28,17 @@ Contents:
 
 # @rootnative/game-engine
 
-A 2D (and soon 3D) game engine for React Native built to run inside **Expo Go** — no custom native modules, no `expo prebuild`, no config plugins.
+A 2D and 3D game engine for React Native, built to run inside **Expo Go** — no custom native modules, no `expo prebuild`, no config plugins.
 
 - **ECS core** — integer entity ids, TypedArray-backed component buffers, bitmask queries
-- **Two-loop architecture** — fixed-timestep simulation on the JS thread, render loop on the UI thread
+- **Two-loop architecture** — fixed-timestep simulation on the JS thread, and a render loop of its own (the Skia renderer draws on the UI thread)
 - **Skia renderer (2D)** — single `<Canvas>` driven by Reanimated worklets; batched `drawAtlas`, no React reconciliation per frame
 - **Three.js renderer (3D)** — `expo-gl` + `expo-three`, ECS-driven meshes, camera, and lights, with a `.glb` loader
 - **Physics** — custom circles + AABB solver tailored to arcade games (no rotation, no joints, ~5–10× faster than a JS Box2D port for stacked-circle workloads)
 - **Asset pipeline** — bundled (`require`) and remote (URL) assets behind one Suspense-friendly API
 - **Input** — Gesture Handler's hook API on the UI thread
 
-> **Status: `0.0.0-alpha.1`, the first alpha.** APIs may shift. See the [CHANGELOG](https://github.com/rootnative/game-engine/blob/main/CHANGELOG.md). Phase 1 (2D) is functionally complete and dogfooded in `example/`. Phase 2 (3D, `expo-gl` + three.js) runs behind the same engine core with no rewrite — meshes, camera, lights, and `.glb` loading all work, demoed in `example-3d/`.
+> **Status: `0.0.0-alpha.1`, the first alpha.** APIs may shift. See the [CHANGELOG](https://github.com/rootnative/game-engine/blob/main/CHANGELOG.md). The 2D renderer (Skia) and the 3D renderer (`expo-gl` and three.js) run behind the same engine core. The `example/` and `example-3d/` apps in the repository show each one.
 
 ## Install
 
@@ -146,8 +146,8 @@ npx expo install expo-gl expo-three three@0.166
 
 - **Expo Go only on the supported path.** Custom dev builds work too, but the engine deliberately avoids anything that would force one.
 - **Hermes is the JS engine.** No WebAssembly. That rules out `rapier`/`box2d-wasm`-style physics.
-- **Single-touch input today.** Gesture pointer ids are hardcoded to `0` — multi-touch is on the roadmap.
-- **Naive O(N²) broadphase.** Comfortable up to ~200 dynamic bodies; spatial-hash broadphase will land before pushing past that.
+- **Single-touch input.** Each touch has the pointer id `0`.
+- **O(N²) broadphase.** Each dynamic body is tested against each other one. Comfortable up to ~200 dynamic bodies.
 
 ## License
 
@@ -205,7 +205,7 @@ They never block each other. The render side reads the latest snapshot the sim h
 
 Two details where the implementation is narrower than the ideal:
 
-- **No interpolation yet.** The renderers draw the latest sim state. They don't blend between the two most recent sim states.
+- **No interpolation.** The renderers draw the latest sim state. They don't blend between the two most recent sim states.
 - **The three renderer runs on the JS thread**, not the UI thread — the `expo-gl` context lives there, so the worklet trick doesn't apply. It reads the ECS buffers directly, which costs nothing extra because the sim is on that thread anyway.
 
 This decoupling is the point. A naive `requestAnimationFrame` + `setState` loop ties simulation and rendering to one thread (JS) and forces React to reconcile on every frame. That's the bottleneck the engine is shaped to avoid.
@@ -249,7 +249,7 @@ const movement: System = (world, ctx) => {
 };
 ```
 
-Bitmask scans are O(N) over the world capacity per query. Archetype-based queries (one bucket per component combination) are a phase-1.5 optimization gated on profiling — the public API stays the same.
+A bitmask scan is O(N) per query, where N is `world.nextId`, the highest entity id so far.
 
 ## 4. Renderer is pluggable
 
@@ -269,8 +269,8 @@ src/
   physics/      Custom AABB + circles solver
   assets/       Bundled + remote asset loader (Suspense-friendly)
   renderers/
-    skia/       Phase 1 renderer (2D)
-    three/      Phase 2 renderer (3D) + glTF loader
+    skia/       2D renderer
+    three/      3D renderer + glTF loader
 ```
 
 ## Performance rules the engine enforces
@@ -307,7 +307,7 @@ import {
 } from '@rootnative/game-engine';
 ```
 
-Everything here is renderer-agnostic. The same imports work whether you render with Skia today or `expo-gl` + three.js later.
+Everything here is renderer-agnostic. The same imports work with the Skia renderer and with the three.js renderer.
 
 ---
 
@@ -526,7 +526,7 @@ interface TouchEvent {
 }
 ```
 
-Sourced from Gesture Handler's `usePanGesture` / `useTapGesture` / `useLongPressGesture` hooks. Multi-touch is not yet wired — `id` is hardcoded to `0`.
+Sourced from Gesture Handler's `usePanGesture` / `useTapGesture` / `useLongPressGesture` hooks. Input is single-touch: `id` is always `0`.
 
 Each `start` gets an `end`, also when the finger doesn't move. A tap sends `start`, `tap` and `end`. The order of `tap` and `end` can change from one tap to the next.
 
@@ -811,7 +811,7 @@ The sim loop drains `ctx.input.touches` at the end of every step, so each event 
 
 The pan sends `end` from `onFinalize`, which runs after each gesture that began, also when the pan never activated. So each `start` gets an `end`, also for a tap or a touch that doesn't move. The loop keeps the pointer state from these events in [`ctx.input.pointers`](./api-core.md#pointers).
 
-> Pointer ids are hardcoded to `0`. Multi-touch isn't wired yet — `Pan` / `Tap` / `LongPress` from Gesture Handler don't expose individual pointers.
+> Input is single-touch: each event has the pointer id `0`. The pan, tap and long-press gestures don't give an id for each finger.
 
 ---
 
@@ -1047,7 +1047,7 @@ Re-exported so you can type your own components if you build them outside the ca
 
 ## Caveats
 
-- **Imperative attach / detach.** Bodies aren't yet declarative — you can't `addComponent(world, id, physics.body, {...})` and have it Just Work, because `attach` does extra bookkeeping (deriving `invMass` from area, packing shape into `halfW`/`halfH`). A declarative `PhysicsBody` component is on the roadmap.
+- **Imperative attach / detach.** Bodies aren't declarative — you can't `addComponent(world, id, physics.body, {...})` and have it Just Work, because `attach` does extra bookkeeping (deriving `invMass` from area, packing shape into `halfW`/`halfH`).
 - **No CCD.** A small fast-moving body can tunnel through a thin static. Either bump the body's radius / box size, or use multiple thinner walls.
 - **No sleeping bodies.** Every dynamic is integrated and pair-tested every step. With 200 dynamic bodies this is still well within frame budget on mid-tier devices.
 
@@ -1471,15 +1471,15 @@ So:
 
 ## Background color
 
-Hardcoded to `#fafafa` via the `<Canvas>`'s `backgroundColor` style, and **not configurable today** — there's no prop for it. The background is opaque and painted by the canvas itself, so wrapping the renderer in a `<View>` of a different color will not show through. Changing it means editing `SkiaRenderer.tsx`, or drawing a full-screen rect as the first entity. A `backgroundColor` prop is on the roadmap.
+Hardcoded to `#fafafa` via the `<Canvas>`'s `backgroundColor` style, and **not configurable** — there's no prop for it. The background is opaque and painted by the canvas itself, so wrapping the renderer in a `<View>` of a different color will not show through. Changing it means editing `SkiaRenderer.tsx`, or drawing a full-screen rect as the first entity.
 
 ---
 
-## Limitations / roadmap
+## Limitations
 
-- **Components named in props, not declared by renderer.** The renderer assumes its `position` and `sprite` props match the schemas above. There's no formal "renderer-component-API" yet — designing one is on the roadmap so renderers can declare which components they read.
+- **Components named in props, not declared by renderer.** The renderer assumes its `position` and `sprite` props match the schemas above. A renderer can't declare which components it reads.
 - **No rotation, no per-entity scale.** Per-frame size is fixed at atlas-build time.
-- **One canvas, one z-order.** Entities draw in entity-id order. There's no z-sort yet — add a `z: 'i16'` field to the sprite component and sort the snapshot if you need it.
+- **One canvas, one draw order.** The renderer draws atlas by atlas, in the order of `atlases.value`, and the sprites of one atlas in entity-id order. There's no z-sort. To draw a sprite above another, put it in a later atlas, or give it a higher entity id.
 
 ================================================================================
 # Source: docs/api-renderer-three.md
@@ -1576,7 +1576,7 @@ type CameraComponent = Component<{
 
 The first alive entity carrying both `transform` and `camera` with `active === 1` becomes the rendering camera each frame. Position and rotation are read from `transform` (XYZ Euler, default forward is `-Z`). `fov` / `near` / `far` are diffed against the live `THREE.PerspectiveCamera`; the projection matrix is rebuilt only when one of them changes.
 
-If no entity matches, the default camera (configured by `setupScene` or the `(0, 0, 5)` factory default) is used unchanged. So the camera prop is fully optional — leave it off and the renderer behaves like slice 1.
+If no entity matches, the default camera (configured by `setupScene` or the `(0, 0, 5)` factory default) is used unchanged. So the camera prop is fully optional — leave it off and the renderer uses the default camera.
 
 ### `ambientLight`
 
@@ -1717,13 +1717,13 @@ addComponent(world, entity, mesh, { mesh: 1 }); // first glTF mesh
 
 - **`.glb` only.** A `.gltf` file that references external `.bin` / image resources won't resolve them — the loader's resource manager isn't wired through the asset pipeline. Convert to `.glb` (single-file binary) at export time.
 - **Embedded textures inside `.glb` may not decode in all React Native environments.** Three.js's image decoding goes through the global `Image` constructor, which Expo Go polyfills but doesn't guarantee for every codec. Plain-geometry / vertex-color models are the safest path; verify on device for textured assets.
-- **No animation / skeleton helpers.** The parsed `GLTF.animations` / `GLTF.scene.animations` are passed through unchanged, but there's no engine-level integration with `THREE.AnimationMixer` yet — drive it manually if you need it.
+- **No animation / skeleton helpers.** The parsed `GLTF.animations` / `GLTF.scene.animations` are passed through unchanged, but there's no engine-level integration with `THREE.AnimationMixer` — drive it manually if you need it.
 
 ---
 
-## Limitations / roadmap
+## Limitations
 
-- **No camera target component.** Directional lights default-target the origin; `PerspectiveCamera` is oriented purely from Euler rotation. There's no `LookAt` component yet — animate `transform.r{x,y,z}` to point things, or grab the camera ref via `setupScene`.
+- **No camera target component.** Directional lights default-target the origin; `PerspectiveCamera` is oriented purely from Euler rotation. There's no `LookAt` component — animate `transform.r{x,y,z}` to point things, or grab the camera ref via `setupScene`.
 - **`Map<EntityId, _>` iterators allocate.** The dead-entry sweep at the end of each pass uses `Map.forEach`, which allocates an iterator per pass. Negligible at prototype counts; switch to parallel arrays if profiling says it matters.
 - **`mesh` index changes reassign `obj.geometry` / `obj.material`.** Three.js GC behavior on rapid swaps isn't fully verified — treat the mesh index as effectively static per entity for now.
 - **Single active camera.** The first entity with `active === 1` wins; there's no view-stacking, picture-in-picture, or split-screen support.

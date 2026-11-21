@@ -205,6 +205,6 @@ Re-exported so you can type your own components if you build them outside the ca
 
 ## Caveats
 
-- **Imperative attach / detach.** Bodies aren't yet declarative — you can't `addComponent(world, id, physics.body, {...})` and have it Just Work, because `attach` does extra bookkeeping (deriving `invMass` from area, packing shape into `halfW`/`halfH`). A declarative `PhysicsBody` component is on the roadmap.
+- **Imperative attach / detach.** Bodies aren't declarative — you can't `addComponent(world, id, physics.body, {...})` and have it Just Work, because `attach` does extra bookkeeping (deriving `invMass` from area, packing shape into `halfW`/`halfH`).
 - **No CCD.** A small fast-moving body can tunnel through a thin static. Either bump the body's radius / box size, or use multiple thinner walls.
 - **No sleeping bodies.** Every dynamic is integrated and pair-tested every step. With 200 dynamic bodies this is still well within frame budget on mid-tier devices.
