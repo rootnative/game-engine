@@ -55,6 +55,8 @@ loadAsset(require('./ball.png')); // and the same Promise
 
 This is what makes `useAsset` (which calls `use(loadAsset(...))`) safe to call from multiple components without thundering-herd downloads.
 
+**A failed load leaves the cache.** If the download or the lookup fails, the `Promise` rejects, and the loader removes it from the map. The next `loadAsset(source)` loads again, so an asset that failed offline loads when the network comes back.
+
 ### Bundled (`number`) sources
 
 ```ts
@@ -102,6 +104,8 @@ export function useAsset(source: AssetSource): LoadedAsset {
 ```
 
 Wrap consumers in `<Suspense fallback={...}>`. The shared in-flight `Promise` means it's safe to call `useAsset(sameSource)` from multiple components — they all suspend on the same Promise and resume together.
+
+If the load fails, `useAsset` throws the error to the nearest error boundary. When the boundary renders its children again, `useAsset` starts a new load.
 
 ```tsx
 import { Suspense } from 'react';

@@ -8,6 +8,7 @@ import * as THREE from 'three'
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 import { loadAsset, type AssetSource } from '../../assets'
+import { loadOnce } from '../../assets/cache'
 import type { MeshDef } from './ThreeRenderer'
 
 // React Native polyfills `navigator` (so `typeof navigator !== 'undefined'`
@@ -32,7 +33,8 @@ const inflight = new Map<AssetSource, Promise<GLTF>>()
  * resolved local file's bytes via `expo-file-system` and handing them to
  * `loader.parse()`. Per-source dedupe — multiple calls with the same source
  * share one in-flight promise, so this is safe to call from `useGltf` /
- * Suspense boundaries.
+ * Suspense boundaries. A load that fails leaves the cache, so the next call
+ * loads again.
  *
  * **`.glb` is the supported path.** A `.gltf` file that references external
  * `.bin` / image resources is not handled — the loader's resource manager
@@ -40,12 +42,7 @@ const inflight = new Map<AssetSource, Promise<GLTF>>()
  * to `.glb` (single-file binary) at export time, or open an issue.
  */
 export function loadGltf(source: AssetSource): Promise<GLTF> {
-  let p = inflight.get(source)
-  if (!p) {
-    p = resolveGltf(source)
-    inflight.set(source, p)
-  }
-  return p
+  return loadOnce(inflight, source, () => resolveGltf(source))
 }
 
 /** Suspense-friendly variant. Calls `use()` on the cached promise. */

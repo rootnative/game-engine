@@ -2,6 +2,8 @@ import { Asset } from 'expo-asset'
 import { Directory, File, Paths } from 'expo-file-system'
 import { use } from 'react'
 
+import { loadOnce } from './cache'
+
 export type AssetSource = number | string
 
 export interface LoadedAsset {
@@ -14,12 +16,7 @@ export interface LoadedAsset {
 const inflight = new Map<AssetSource, Promise<LoadedAsset>>()
 
 export function loadAsset(source: AssetSource): Promise<LoadedAsset> {
-  let p = inflight.get(source)
-  if (!p) {
-    p = resolve(source)
-    inflight.set(source, p)
-  }
-  return p
+  return loadOnce(inflight, source, () => resolve(source))
 }
 
 export function useAsset(source: AssetSource): LoadedAsset {

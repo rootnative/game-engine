@@ -200,7 +200,7 @@ function useGltf(source: AssetSource): GLTF;
 function extractMeshDefs(gltf: GLTF): MeshDef[];
 ```
 
-`loadGltf` bridges the engine [asset pipeline](./api-assets.md) to three.js's `GLTFLoader`: it resolves `source` (bundled `require(...)` or remote URL), reads the file's bytes via `expo-file-system`, and hands them to `loader.parse()`. Per-source dedupe — multiple calls share one in-flight promise, so `useGltf` is React 19 `use()`-compatible and safe to call from a `<Suspense>` boundary.
+`loadGltf` bridges the engine [asset pipeline](./api-assets.md) to three.js's `GLTFLoader`: it resolves `source` (bundled `require(...)` or remote URL), reads the file's bytes via `expo-file-system`, and hands them to `loader.parse()`. Per-source dedupe — multiple calls share one in-flight promise, so `useGltf` is React 19 `use()`-compatible and safe to call from a `<Suspense>` boundary. A load that fails leaves the cache, so the next call loads again.
 
 ```tsx
 function GameView() {
