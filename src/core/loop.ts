@@ -47,7 +47,7 @@ export function createLoop(
   let currentSystems = systems
 
   const ctx = {
-    time: { current: 0, previous: 0, delta: stepS, alpha: 1 },
+    time: { current: 0, previous: 0, delta: stepS },
     input: { touches: [] as TouchEvent[], pointers: [] as MutablePointer[] },
     screen: { width: 0, height: 0 },
     events: [] as GameEvent[],

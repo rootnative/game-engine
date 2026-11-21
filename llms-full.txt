@@ -205,7 +205,7 @@ They never block each other. The render side reads the latest snapshot the sim h
 
 Two details where the implementation is narrower than the ideal:
 
-- **No interpolation yet.** `ctx.time.alpha` is reserved for blending between the two most recent sim states, but it is always `1` and no renderer reads it. Rendering shows the latest sim state directly.
+- **No interpolation yet.** The renderers draw the latest sim state. They don't blend between the two most recent sim states.
 - **The three renderer runs on the JS thread**, not the UI thread — the `expo-gl` context lives there, so the worklet trick doesn't apply. It reads the ECS buffers directly, which costs nothing extra because the sim is on that thread anyway.
 
 This decoupling is the point. A naive `requestAnimationFrame` + `setState` loop ties simulation and rendering to one thread (JS) and forces React to reconcile on every frame. That's the bottleneck the engine is shaped to avoid.
@@ -494,7 +494,6 @@ interface FrameContext {
     readonly current: number;     // sim seconds since loop.start()
     readonly previous: number;    // value of `current` last tick
     readonly delta: number;       // fixed step in seconds (e.g. 1/60)
-    readonly alpha: number;       // reserved for interpolation; always 1 today
   };
   readonly input: {
     readonly touches: ReadonlyArray<TouchEvent>;
@@ -507,7 +506,6 @@ interface FrameContext {
 ```
 
 - **`time.delta`** is the fixed step (default `1/60`s). Use it to integrate velocities — it does **not** change frame to frame.
-- **`time.alpha`** is **reserved and not yet computed** — the loop initializes it to `1` and never updates it. It is intended as the fixed-timestep interpolation factor for renderers, but no renderer reads it today and neither the Skia nor the three renderer interpolates between sim states. Don't build on it yet.
 - **`input.touches`** is drained at the end of every step. Read events early in your system list.
 - **`input.pointers`** is the state of each pointer after the touches of this step. It's empty until the first touch. Then it holds one entry, for pointer `0`. Unlike `touches`, it stays from step to step, and a `swap` keeps it. Use it to ask "is a finger down, and where?" (see [Pointers](#pointers)).
 - **`screen`** is set from the `<GameEngine>` view's `onLayout`.

@@ -15,7 +15,7 @@ They never block each other. The render side reads the latest snapshot the sim h
 
 Two details where the implementation is narrower than the ideal:
 
-- **No interpolation yet.** `ctx.time.alpha` is reserved for blending between the two most recent sim states, but it is always `1` and no renderer reads it. Rendering shows the latest sim state directly.
+- **No interpolation yet.** The renderers draw the latest sim state. They don't blend between the two most recent sim states.
 - **The three renderer runs on the JS thread**, not the UI thread — the `expo-gl` context lives there, so the worklet trick doesn't apply. It reads the ECS buffers directly, which costs nothing extra because the sim is on that thread anyway.
 
 This decoupling is the point. A naive `requestAnimationFrame` + `setState` loop ties simulation and rendering to one thread (JS) and forces React to reconcile on every frame. That's the bottleneck the engine is shaped to avoid.

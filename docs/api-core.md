@@ -201,7 +201,6 @@ interface FrameContext {
     readonly current: number;     // sim seconds since loop.start()
     readonly previous: number;    // value of `current` last tick
     readonly delta: number;       // fixed step in seconds (e.g. 1/60)
-    readonly alpha: number;       // reserved for interpolation; always 1 today
   };
   readonly input: {
     readonly touches: ReadonlyArray<TouchEvent>;
@@ -214,7 +213,6 @@ interface FrameContext {
 ```
 
 - **`time.delta`** is the fixed step (default `1/60`s). Use it to integrate velocities — it does **not** change frame to frame.
-- **`time.alpha`** is **reserved and not yet computed** — the loop initializes it to `1` and never updates it. It is intended as the fixed-timestep interpolation factor for renderers, but no renderer reads it today and neither the Skia nor the three renderer interpolates between sim states. Don't build on it yet.
 - **`input.touches`** is drained at the end of every step. Read events early in your system list.
 - **`input.pointers`** is the state of each pointer after the touches of this step. It's empty until the first touch. Then it holds one entry, for pointer `0`. Unlike `touches`, it stays from step to step, and a `swap` keeps it. Use it to ask "is a finger down, and where?" (see [Pointers](#pointers)).
 - **`screen`** is set from the `<GameEngine>` view's `onLayout`.

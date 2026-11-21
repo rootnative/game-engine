@@ -79,7 +79,6 @@ export interface FrameContext {
     readonly current: number
     readonly previous: number
     readonly delta: number
-    readonly alpha: number
   }
   readonly input: {
     readonly touches: ReadonlyArray<TouchEvent>

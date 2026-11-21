@@ -15,7 +15,7 @@ const DT = 1 / 60
 
 function frame(delta: number): FrameContext {
   return {
-    time: { current: 0, previous: 0, delta, alpha: 1 },
+    time: { current: 0, previous: 0, delta },
     input: { touches: [], pointers: [] },
     screen: { width: 0, height: 0 },
     events: [],
