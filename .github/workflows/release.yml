@@ -1,0 +1,285 @@
+name: Release
+
+# **This filename is part of the release credentials. Do not rename it.**
+#
+# npm binds a trusted publisher to an exact repository and an exact workflow
+# filename. A rename revokes nothing and gives no warning. The next run
+# passes every gate and then fails at the publish step with npm's 404
+# (`404 PUT /@rootnative%2fgame-engine`), which names no cause.
+#
+# The version input:
+#
+#   skip            Publish the version that main has now, with no release
+#                   commit. Use it for a version that a person set on main,
+#                   and after a run that pushed the tag and then failed at
+#                   the publish (delete the tag first).
+#   a bump type     Bump the version and make the release commit.
+#   custom_version  An exact version, for example 0.0.1. It overrides the
+#                   version input and makes the release commit.
+#
+# This workflow doesn't write the CHANGELOG or the README status line. A
+# person commits both to main before the run. check-release.mjs stops the
+# run when one of them doesn't name the version.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "skip: publish the version on main, with no release commit. A bump type makes the release commit. custom_version overrides it."
+        required: false
+        default: skip
+        type: choice
+        options:
+          - skip
+          - prerelease
+          - prepatch
+          - preminor
+          - premajor
+          - patch
+          - minor
+          - major
+      custom_version:
+        description: "Exact version, for example 0.0.1. It overrides the version input."
+        required: false
+        type: string
+      preid:
+        description: "Prerelease identifier. Only the pre* bump types use it."
+        required: false
+        default: alpha
+        type: choice
+        options:
+          - alpha
+          - beta
+          - rc
+      tag:
+        description: "npm dist-tag."
+        required: true
+        default: latest
+        type: choice
+        options:
+          - latest
+          - alpha
+          - beta
+          - rc
+      dry_run:
+        description: "Run each gate and make the release commit, but push nothing and publish nothing."
+        required: false
+        default: false
+        type: boolean
+
+# `id-token: write` gives the OIDC token that npm exchanges for the publish.
+# `contents: write` pushes the release commit and the tag, and makes the
+# GitHub Release.
+permissions:
+  contents: write
+  id-token: write
+
+# No `cancel-in-progress`. A cancelled publish can leave a version on npm
+# with no tag in git, and npm never accepts the same version again.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release @rootnative/game-engine
+    runs-on: ubuntu-latest
+    steps:
+      # The run pushes the release commit to main, so it must start from
+      # main. A commit from another branch would put that branch on main.
+      - name: Check the branch
+        if: ${{ github.ref != 'refs/heads/main' }}
+        run: |
+          echo "::error::Run this workflow from main. It pushes the release commit to main."
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # check-release.mjs reads the tags to see if the version exists.
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: "pnpm"
+          # Necessary also with trusted publishing: npm exchanges the OIDC
+          # token at this registry.
+          registry-url: https://registry.npmjs.org
+
+      # An exact version, not a range. A new npm can change the release path
+      # with no change in the repository. Change this pin in its own commit.
+      - name: Install npm (staged publishing requires >=11.15.0)
+        run: npm install -g npm@11.19.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The inputs go through the environment, not into the script text, so
+      # a value can't change the command. `commit` is false for `skip`.
+      - name: Set the version
+        id: version
+        env:
+          BUMP: ${{ inputs.version }}
+          CUSTOM: ${{ inputs.custom_version }}
+          PREID: ${{ inputs.preid }}
+        run: |
+          commit=true
+          if [ -n "$CUSTOM" ]; then
+            npm version "$CUSTOM" --no-git-tag-version
+          elif [ "$BUMP" = "skip" ]; then
+            commit=false
+          else
+            case "$BUMP" in
+              pre*) npm version "$BUMP" --preid "$PREID" --no-git-tag-version ;;
+              *) npm version "$BUMP" --no-git-tag-version ;;
+            esac
+          fi
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
+      - name: Check the release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DIST_TAG: ${{ inputs.tag }}
+        run: node scripts/check-release.mjs --version "$VERSION" --dist-tag "$DIST_TAG"
+
+      # The same gates as CI, in the same order. No input skips them. The
+      # type check runs before the build, so it checks `src/` and not a
+      # stale `dist/`.
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Build package
+        run: pnpm run build
+
+      # The README status line names the version, and `llms-full.txt` holds
+      # a copy of the README.
+      - name: llms-full.txt check
+        run: |
+          pnpm run build:llms
+          if ! git diff --exit-code -- llms-full.txt; then
+            echo "::error::llms-full.txt is stale. Run 'pnpm run build:llms' and commit the result to main."
+            exit 1
+          fi
+
+      # A dry run makes the commit too, so its log shows the release commit.
+      - name: Commit and tag
+        env:
+          TAG: game-engine@${{ steps.version.outputs.version }}
+          COMMIT: ${{ steps.version.outputs.commit }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ "$COMMIT" = "true" ]; then
+            git add package.json
+            git commit -m "release: $TAG"
+          fi
+          git tag "$TAG"
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::The release changed files that the commit doesn't hold. A gate writes a tracked file."
+            git status --short
+            exit 1
+          fi
+          git show --stat HEAD
+
+      # Push before the publish. A push can fail, for example when a commit
+      # reached main during the run, and a publish can't be undone. In this
+      # order, a failed push stops the run before npm gets anything.
+      # `--atomic` pushes the commit and the tag together, or neither. With
+      # `skip`, HEAD is main already, and the push adds only the tag.
+      - name: Push the commit and the tag
+        if: ${{ !inputs.dry_run }}
+        env:
+          TAG: game-engine@${{ steps.version.outputs.version }}
+        run: git push --atomic origin HEAD:main "refs/tags/$TAG"
+
+      # OIDC only. Don't add `NODE_AUTH_TOKEN` or an `NPM_TOKEN` secret: a
+      # token takes precedence over OIDC and hides a registration fault.
+      # The publisher on npmjs.com is stage-only, so npm refuses a plain
+      # `npm publish`. `npm stage publish` uploads the tarball with
+      # provenance and holds it. Nothing installs until a maintainer approves
+      # it with 2FA. The dist-tag can't change at the approval. `prepack`
+      # builds `dist/` and `llms-full.txt` before the upload.
+      - name: Stage the publish on npm
+        id: stage
+        if: ${{ !inputs.dry_run }}
+        env:
+          DIST_TAG: ${{ inputs.tag }}
+        run: npm stage publish --provenance --access public --tag "$DIST_TAG"
+
+      - name: Explain a publish failure
+        if: ${{ failure() && steps.stage.outcome == 'failure' }}
+        env:
+          TAG: game-engine@${{ steps.version.outputs.version }}
+        run: |
+          echo "::error::A 404 on PUT /@rootnative%2fgame-engine is almost always an authentication fault, not a missing package."
+          echo "Check these, in this order:"
+          echo "  1. Is '.github/workflows/release.yml' a trusted publisher of @rootnative/game-engine on npmjs.com? npm binds to the exact filename."
+          echo "  2. Does the job still have 'id-token: write'?"
+          echo "  3. Did the step run 'npm publish'? The publisher is stage-only, so the step must run 'npm stage publish'."
+          echo "Main has the tag $TAG, and the release commit if this run made one. After the fix:"
+          echo "  1. Delete the tag: git push --delete origin $TAG"
+          echo "  2. Run this workflow with the version 'skip'. It publishes the version on main, with no new commit."
+
+      # The notes are the CHANGELOG section of the version, up to the next
+      # section or the footer links. check-release.mjs proved that the
+      # section exists.
+      - name: Create the GitHub Release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: game-engine@${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          notes="$RUNNER_TEMP/release-notes.md"
+          awk -v heading="## [$VERSION]" '
+            index($0, heading) == 1 { found = 1; next }
+            found && (/^## \[/ || /^\[.+\]: https?:\/\//) { exit }
+            found { print }
+          ' CHANGELOG.md > "$notes"
+          prerelease=""
+          case "$VERSION" in *-*) prerelease="--prerelease" ;; esac
+          if grep -q '[^[:space:]]' "$notes"; then
+            gh release create "$TAG" --title "$VERSION" --notes-file "$notes" $prerelease
+          else
+            gh release create "$TAG" --title "$VERSION" --generate-notes $prerelease
+          fi
+
+      - name: Summary
+        if: ${{ always() && steps.version.outputs.version != '' }}
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DIST_TAG: ${{ inputs.tag }}
+          DRY: ${{ inputs.dry_run }}
+          COMMIT: ${{ steps.version.outputs.commit }}
+          OUTCOME: ${{ job.status }}
+        run: |
+          {
+            if [ "$OUTCOME" != "success" ]; then
+              echo "### The release of \`$VERSION\` failed"
+              echo ""
+              echo "Read the failed step. The step 'Explain a publish failure' gives the recovery for a failed publish."
+            elif [ "$DRY" = "true" ]; then
+              echo "### Dry run: nothing was pushed or published"
+              echo ""
+              echo "Each gate passed for \`$VERSION\` on the dist-tag \`$DIST_TAG\`. The tag stayed on the runner, on this commit:"
+              echo ""
+              echo '```text'
+              git show --stat --format='%h %s' HEAD
+              echo '```'
+            else
+              echo "### Staged \`$VERSION\`: not installable yet"
+              echo ""
+              echo "- npm: \`@rootnative/game-engine@$VERSION\` is staged for the dist-tag \`$DIST_TAG\`. Approve it with 2FA on npmjs.com (Staged Packages), or with \`npm stage approve\`."
+              if [ "$COMMIT" = "true" ]; then
+                echo "- Release commit on main: \`$(git rev-parse --short HEAD)\` release: game-engine@$VERSION"
+              else
+                echo "- No release commit: the tag is on \`$(git rev-parse --short HEAD)\`, the commit on main."
+              fi
+              echo "- Tag and GitHub Release: \`game-engine@$VERSION\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
