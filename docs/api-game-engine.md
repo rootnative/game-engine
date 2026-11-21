@@ -73,17 +73,26 @@ Rendered **above** `renderer` inside the same root view. Use this for HUD, menus
 ## `useEngine()`
 
 ```ts
-function useEngine(): Loop;
+function useEngine(): Engine;
+
+interface Engine {
+  pause(): void;
+  resume(): void;
+  isPaused(): boolean;
+  isRunning(): boolean;
+  dispatch(e: GameEvent): void;
+  onAfterStep(cb: () => void): () => void;
+}
 ```
 
-Returns the live [`Loop`](./api-core.md#loop-shape) instance from the nearest `<GameEngine>`. Throws if called outside one.
+Returns the controls of the loop of the nearest `<GameEngine>`. Throws if called outside one.
 
 ```tsx
 function PauseButton() {
-  const loop = useEngine();
+  const engine = useEngine();
   return (
-    <Pressable onPress={() => (loop.isPaused() ? loop.resume() : loop.pause())}>
-      <Text>{loop.isPaused() ? 'Resume' : 'Pause'}</Text>
+    <Pressable onPress={() => (engine.isPaused() ? engine.resume() : engine.pause())}>
+      <Text>{engine.isPaused() ? 'Resume' : 'Pause'}</Text>
     </Pressable>
   );
 }
@@ -91,9 +100,17 @@ function PauseButton() {
 
 Common uses:
 
-- **HUD pause / resume** — call `loop.pause()` / `loop.resume()`.
-- **Level transitions** — call `loop.swap(nextWorld, nextSystems)` directly. (Setting new `world` / `systems` props on `<GameEngine>` does the same thing.)
-- **Subscribing to step events** — `loop.onAfterStep(cb)` to drive a renderer or external sink. Always store and call the returned unsubscribe function in a `useEffect` cleanup.
+- **HUD pause / resume** — call `engine.pause()` / `engine.resume()`.
+- **Events from the UI** — `engine.dispatch(event)` queues a `GameEvent` for the next step, the same as `ctx.dispatch` in a system.
+- **Subscribing to step events** — `engine.onAfterStep(cb)` to drive a renderer or external sink. Always store and call the returned unsubscribe function in a `useEffect` cleanup.
+
+The props of `<GameEngine>` control the rest of the loop, so `Engine` doesn't have it:
+
+- **Start and stop** — set `running`.
+- **Level transitions** — pass a new `world` and `systems`. With promises, see [Suspense and async level loads](#suspense-and-async-level-loads).
+- **Screen size and touches** — `<GameEngine>` sets them from its layout and its gestures.
+
+To drive a loop with no `<GameEngine>`, use [`createLoop`](./api-core.md#loop), which gives the full `Loop`.
 
 ---
 

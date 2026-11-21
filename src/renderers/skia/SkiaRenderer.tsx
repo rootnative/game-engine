@@ -55,7 +55,7 @@ export function SkiaRenderer({
   const spriteBit = sprite.bit
   const required = positionBit | spriteBit
 
-  const loop = useEngine()
+  const engine = useEngine()
   const packed = useSharedValue<Float32Array>(EMPTY)
 
   const paint = useMemo(() => {
@@ -73,7 +73,7 @@ export function SkiaRenderer({
   const dstDraw = useMemo<SkRSXform[]>(() => [], [])
 
   useEffect(() => {
-    return loop.onAfterStep(() => {
+    return engine.onAfterStep(() => {
       const n = world.nextId
       const alive = world.alive
       const mask = world.mask
@@ -99,7 +99,7 @@ export function SkiaRenderer({
       }
       packed.value = out
     })
-  }, [loop, world, packed, position, sprite, required])
+  }, [engine, world, packed, position, sprite, required])
 
   const picture = useDerivedValue<SkPicture>(() => {
     const arr = packed.value

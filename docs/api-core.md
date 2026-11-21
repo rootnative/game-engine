@@ -262,7 +262,7 @@ const aim: System = (world, ctx) => {
 
 ## Loop
 
-You usually don't construct the loop yourself — `<GameEngine>` does it for you. Use `createLoop` directly only when embedding the engine without the React mount.
+You usually don't construct the loop yourself — `<GameEngine>` does it for you. Use `createLoop` directly only when embedding the engine without the React mount. Inside `<GameEngine>`, [`useEngine()`](./api-game-engine.md#useengine) gives a smaller set of controls.
 
 ### `createLoop(world, systems, options?)`
 

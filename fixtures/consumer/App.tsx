@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useSharedValue } from 'react-native-reanimated'
 import { BoxGeometry, MeshNormalMaterial } from 'three'
@@ -10,6 +10,8 @@ import {
   createPhysics,
   createWorld,
   defineComponent,
+  useEngine,
+  type Engine,
   type System,
 } from '@rootnative/game-engine'
 import {
@@ -74,6 +76,17 @@ const spin: System = (_world, ctx) => {
 }
 const systems3d: ReadonlyArray<System> = [spin]
 
+function PauseButton() {
+  const engine: Engine = useEngine()
+  return (
+    <Pressable
+      onPress={() => (engine.isPaused() ? engine.resume() : engine.pause())}
+    >
+      <Text>{engine.isPaused() ? 'Resume' : 'Pause'}</Text>
+    </Pressable>
+  )
+}
+
 function Game2D() {
   const atlases = useSharedValue<ReadonlyArray<SkiaAtlas>>([])
   useEffect(() => {
@@ -94,7 +107,9 @@ function Game2D() {
           atlases={atlases}
         />
       }
-    />
+    >
+      <PauseButton />
+    </GameEngine>
   )
 }
 

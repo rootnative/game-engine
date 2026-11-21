@@ -20,8 +20,9 @@ import {
 } from 'react-native-gesture-handler'
 import { scheduleOnRN } from 'react-native-worklets'
 
-import { createLoop, type Loop } from './core/loop'
+import { createLoop } from './core/loop'
 import type { System, TouchEvent, World } from './core/types'
+import { toEngine, type Engine } from './engine'
 
 export interface GameEngineProps {
   readonly world: World | Promise<World>
@@ -41,14 +42,14 @@ function isThenable<T>(v: unknown): v is PromiseLike<T> {
   )
 }
 
-const EngineContext = createContext<Loop | null>(null)
+const EngineContext = createContext<Engine | null>(null)
 
-export function useEngine(): Loop {
-  const loop = useContext(EngineContext)
-  if (!loop) {
+export function useEngine(): Engine {
+  const engine = useContext(EngineContext)
+  if (!engine) {
     throw new Error('useEngine must be called inside <GameEngine>')
   }
-  return loop
+  return engine
 }
 
 export function GameEngine({
@@ -68,6 +69,7 @@ export function GameEngine({
     () => createLoop(resolvedWorld, resolvedSystems, { hz }),
     [hz],
   )
+  const engine = useMemo(() => toEngine(loop), [loop])
 
   useEffect(() => {
     loop.swap(resolvedWorld, resolvedSystems)
@@ -172,7 +174,7 @@ export function GameEngine({
   const gesture = useSimultaneousGestures(pan, tap, longPress)
 
   return (
-    <EngineContext.Provider value={loop}>
+    <EngineContext.Provider value={engine}>
       <GestureDetector gesture={gesture}>
         <View style={styles.root} onLayout={onLayout} collapsable={false}>
           {renderer}

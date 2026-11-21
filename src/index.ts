@@ -1,6 +1,7 @@
 export * from './core'
 export { GameEngine, useEngine } from './GameEngine'
 export type { GameEngineProps } from './GameEngine'
+export type { Engine } from './engine'
 export { createPhysics } from './physics'
 export type {
   Physics,
