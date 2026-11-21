@@ -491,8 +491,8 @@ Conventions:
 ```ts
 interface FrameContext {
   readonly time: {
-    readonly current: number;     // sim seconds since loop.start()
-    readonly previous: number;    // value of `current` last tick
+    readonly current: number;     // sim seconds since the loop was created
+    readonly previous: number;    // value of `current` at the step before
     readonly delta: number;       // fixed step in seconds (e.g. 1/60)
   };
   readonly input: {
@@ -506,6 +506,7 @@ interface FrameContext {
 ```
 
 - **`time.delta`** is the fixed step (default `1/60`s). Use it to integrate velocities — it does **not** change frame to frame.
+- **`time.current`** adds `delta` at each step, from `0` when the loop is created. It doesn't move while the loop is stopped or paused, and `start`, `resume` and `swap` don't reset it. So a level that comes in by `swap` (a new `world` prop on `<GameEngine>`) starts at the old time. For a level timer, keep the start time of the level in your own state, or remount `<GameEngine>`, which makes a new loop.
 - **`input.touches`** is drained at the end of every step. Read events early in your system list.
 - **`input.pointers`** is the state of each pointer after the touches of this step. It's empty until the first touch. Then it holds one entry, for pointer `0`. Unlike `touches`, it stays from step to step, and a `swap` keeps it. Use it to ask "is a finger down, and where?" (see [Pointers](#pointers)).
 - **`screen`** is set from the `<GameEngine>` view's `onLayout`.

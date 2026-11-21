@@ -78,6 +78,26 @@ describe('createLoop timing', () => {
     for (const t of times) expect(t.delta).toBeCloseTo(1 / HZ)
   })
 
+  it('keeps counting the sim time through stop, start, swap and pause', () => {
+    const steps: number[] = []
+    const system: System = (_world, ctx) => {
+      steps.push(Math.round(ctx.time.current * HZ))
+    }
+    const { loop, world } = setup([system])
+    loop.start()
+    advance(STEP)
+    loop.stop()
+    loop.start()
+    advance(STEP)
+    loop.swap(world, [system])
+    advance(STEP)
+    loop.pause()
+    advance(STEP * 5)
+    loop.resume()
+    advance(STEP)
+    expect(steps).toEqual([1, 2, 3, 4])
+  })
+
   it('runs one step after a gap longer than maxCatchUpMs', () => {
     const system = vi.fn<System>()
     const { loop } = setup([system])
