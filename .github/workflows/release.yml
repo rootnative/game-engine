@@ -172,6 +172,10 @@ jobs:
             exit 1
           fi
 
+      # The second CI job. It packs the version that this run publishes.
+      - name: Consumer check
+        run: node scripts/check-consumer.mjs
+
       # A dry run makes the commit too, so its log shows the release commit.
       - name: Commit and tag
         env:
