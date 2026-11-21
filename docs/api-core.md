@@ -139,7 +139,7 @@ function removeComponent(world: World, id: EntityId, component: Component): void
 function hasComponent(world: World, id: EntityId, component: Component): boolean;
 ```
 
-O(1) bitmask ops. `removeComponent` does **not** zero the component's data — the row will be reused if the component is re-added.
+O(1) bitmask ops. `removeComponent` doesn't zero the component's data. The old values stay in the buffers until the next `addComponent`, which writes each field (`0` for each field that you don't give).
 
 ---
 
@@ -189,7 +189,7 @@ Conventions:
 
 - **Run on the JS thread.** Systems can use any JS — third-party libs (`planck`, custom solvers, AI) all live here.
 - **Allocation-free in the hot path.** Pre-allocate vectors, pool entities, hoist buffer references.
-- **No `scheduleOnRN` / `scheduleOnUI` per frame.** The render side picks up state through shared buffers; you don't need to bridge.
+- **No `scheduleOnRN` / `scheduleOnUI` per frame.** The renderers read the component buffers (the Skia renderer through a snapshot after each step); you don't need to bridge.
 
 ---
 

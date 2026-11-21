@@ -138,7 +138,7 @@ If you also drive the camera through ECS, the `setupScene` configuration is the 
 
 ### `clearColor`
 
-The GL clear color, as a CSS-color string or a `0xRRGGBB` number. Defaults to `0x000000`.
+The GL clear color, as a CSS-color string or a `0xRRGGBB` number. Defaults to `0x000000`. The renderer reads it once, when the GL context is created, so a later change has no effect.
 
 ---
 

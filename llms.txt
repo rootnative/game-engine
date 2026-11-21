@@ -13,18 +13,18 @@ For a runnable minimal example, see the README.
 
 ## Concepts
 
-- [Architecture](https://unpkg.com/@rootnative/game-engine/docs/concepts.md): The two-loop split (sim on JS thread, render on UI thread), ECS rationale, fixed timestep, performance rules, and deliberate departures from naive `requestAnimationFrame` + `setState` game loops.
+- [Architecture](https://unpkg.com/@rootnative/game-engine/docs/concepts.md): The two-loop split (the sim on the JS thread; the Skia renderer on the UI thread, the three.js renderer on the JS thread), ECS rationale, fixed timestep, performance rules, and deliberate departures from naive `requestAnimationFrame` + `setState` game loops.
 
 ## API reference
 
-- [Core](https://unpkg.com/@rootnative/game-engine/docs/api-core.md): `createWorld`, `defineComponent`, entity lifecycle (`createEntity`, `destroyEntity`, `addComponent`, `removeComponent`, `hasComponent`), `query`, `createLoop`, the `System` and `FrameContext` types, touch event taxonomy.
-- [`<GameEngine>` and `useEngine`](https://unpkg.com/@rootnative/game-engine/docs/api-game-engine.md): React mount component, props (sync or `Promise` for Suspense-driven level loads), gesture-driven input pipeline, layout/screen propagation, lifecycle.
+- [Core](https://unpkg.com/@rootnative/game-engine/docs/api-core.md): `createWorld`, `defineComponent`, entity lifecycle (`createEntity`, `destroyEntity`, `addComponent`, `removeComponent`, `hasComponent`), `query`, `createLoop`, the `System` and `FrameContext` types, the touch event taxonomy, and `ctx.input.pointers`.
+- [`<GameEngine>` and `useEngine`](https://unpkg.com/@rootnative/game-engine/docs/api-game-engine.md): React mount component, props (sync or `Promise` for Suspense-driven level loads), the `Engine` controls that `useEngine()` returns, gesture-driven input pipeline, layout/screen propagation, lifecycle.
 - [Physics](https://unpkg.com/@rootnative/game-engine/docs/api-physics.md): `createPhysics`, `BodyDef`, `BodyShape`, the custom circles + AABB solver, friction/restitution rules, and current limitations (no rotation, no joints, O(N²) broadphase).
-- [Assets](https://unpkg.com/@rootnative/game-engine/docs/api-assets.md): `loadAsset`, `useAsset`, `clearAssetCache`, the bundled-vs-remote source model, Suspense semantics, and disk-cache caveats.
-- [Skia renderer](https://unpkg.com/@rootnative/game-engine/docs/api-renderer-skia.md): `<SkiaRenderer>`, `SkiaAtlas` / `SkiaFrame`, `loadSkiaImage` / `loadSkiaAtlas` / `gridFrames`, the worklet snapshot/draw pipeline, atlas + frame indexing, tints, and what isn't wired yet (rotation, per-sprite scale).
+- [Assets](https://unpkg.com/@rootnative/game-engine/docs/api-assets.md): `loadAsset`, `useAsset`, `clearAssetCache`, the bundled-vs-remote source model, Suspense semantics, the retry after a failed load, and disk-cache caveats.
+- [Skia renderer](https://unpkg.com/@rootnative/game-engine/docs/api-renderer-skia.md): `<SkiaRenderer>`, `SkiaAtlas` / `SkiaFrame`, `loadSkiaImage` / `loadSkiaAtlas` / `gridFrames`, the worklet snapshot/draw pipeline, atlas + frame indexing, tints, and what the renderer doesn't do (rotation, per-sprite scale).
 - [Three.js renderer](https://unpkg.com/@rootnative/game-engine/docs/api-renderer-three.md): `<ThreeRenderer>` on `expo-gl` + `expo-three`, `MeshDef`, ECS-driven `CameraComponent` / `AmbientLightComponent` / `DirectionalLightComponent` / `PointLightComponent`, the JS-thread reconciliation loop, `loadGltf` / `useGltf` / `extractMeshDefs` for `.glb` assets via the engine asset pipeline, and current limitations (no LookAt component, .glb-only, embedded-texture caveats).
 
 ## Optional
 
 - [Full documentation, inlined for offline use](https://unpkg.com/@rootnative/game-engine/llms-full.txt): All of the above concatenated into a single file. Useful when fetching individual links isn't possible (offline, sandboxed LLM contexts, or after `npm install` without network access).
-- [Repository](https://github.com/rootnative/game-engine): Source, issues, and the in-repo `example/` Expo Go app.
+- [Repository](https://github.com/rootnative/game-engine): Source, issues, and the `example/` (2D) and `example-3d/` (3D) Expo Go apps.

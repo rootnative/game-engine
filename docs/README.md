@@ -11,7 +11,7 @@ For install + a runnable minimal example, see the [repo root README](../README.m
 ## API reference
 
 - [Core](./api-core.md) — `createWorld`, `defineComponent`, entity lifecycle, `query`, `createLoop`, `System`, `FrameContext`.
-- [`<GameEngine>`](./api-game-engine.md) — mount component, `useEngine`.
+- [`<GameEngine>`](./api-game-engine.md) — mount component, `useEngine` and its `Engine` controls.
 - [Physics](./api-physics.md) — `createPhysics`, `BodyDef`, body shapes.
 - [Assets](./api-assets.md) — `loadAsset`, `useAsset`, `clearAssetCache`.
 - [Skia renderer](./api-renderer-skia.md) — `<SkiaRenderer>`, `SkiaAtlas`, `loadSkiaAtlas`, `gridFrames`.
