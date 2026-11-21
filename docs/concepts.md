@@ -1,6 +1,6 @@
 # Architecture
 
-The engine is built around four ideas that follow from one constraint: **must run inside Expo Go on Hermes, hitting 60 FPS on mid-tier devices.** No native modules, no `expo prebuild`, no WebAssembly.
+The engine is built around four ideas that follow from one constraint: **must run inside Expo Go on Hermes.** No native modules, no `expo prebuild`, no WebAssembly.
 
 ## 1. Two-loop split
 
@@ -95,4 +95,4 @@ src/
 - **`requestAnimationFrame` + `setState`** — couples simulation and rendering to the JS thread; reconciles React per frame.
 - **A React tree per entity** — reconciliation cost grows linearly with entity count.
 - **Map of plain-object entities** — pointer chasing, GC churn, no chance of contiguous memory.
-- **Box2D port (planck, matter.js)** — solver dominates frame time once ~80 dynamic circles stack at a wall. The custom solver does only what arcade games need (circles + AABBs, no rotation, no joints) and runs 5–10× faster on those workloads. WASM physics is ruled out by Hermes.
+- **Box2D port (planck, matter.js)** — solver dominates frame time once ~80 dynamic circles stack at a wall. The custom solver does only what arcade games need (circles + AABBs, no rotation, no joints). WASM physics is ruled out by Hermes.

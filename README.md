@@ -13,7 +13,7 @@ A 2D and 3D game engine for React Native, built to run inside **Expo Go** — no
 - **Two-loop architecture** — fixed-timestep simulation on the JS thread, and a render loop of its own (the Skia renderer draws on the UI thread)
 - **Skia renderer (2D)** — single `<Canvas>` driven by Reanimated worklets; batched `drawAtlas`, no React reconciliation per frame
 - **Three.js renderer (3D)** — `expo-gl` + `expo-three`, ECS-driven meshes, camera, and lights, with a `.glb` loader
-- **Physics** — custom circles + AABB solver tailored to arcade games (no rotation, no joints, ~5–10× faster than a JS Box2D port for stacked-circle workloads)
+- **Physics** — custom circles + AABB solver tailored to arcade games (no rotation, no joints), allocation-free in the hot loop
 - **Asset pipeline** — bundled (`require`) and remote (URL) assets behind one Suspense-friendly API
 - **Input** — Gesture Handler's hook API on the UI thread
 

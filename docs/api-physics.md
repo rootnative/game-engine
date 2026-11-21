@@ -13,7 +13,7 @@ import type {
 } from '@rootnative/game-engine';
 ```
 
-A custom **circles + axis-aligned-box** solver built directly on the ECS TypedArrays. Roughly 250 lines, allocation-free in the hot loop, ~5–10× faster than a JS Box2D port for circle-stacking workloads.
+A custom **circles + axis-aligned-box** solver built directly on the ECS TypedArrays. Roughly 250 lines, allocation-free in the hot loop, and it does only what arcade games need.
 
 **What it does:** position-separation, restitution impulse, Coulomb friction. Single-pass resolution per contact.
 
@@ -122,7 +122,7 @@ The `System` you put in your system list. Runs one fixed timestep per call:
 
 Each overlapping pair is resolved inline as it's found — positional separation by inverse-mass ratio, then restitution impulse, then Coulomb friction (clamped to `μ * j_normal`). There's no separate contact-resolution phase and no contact list; resolution happens inside the pair test.
 
-Cost is dominated by the O(N²) pair loop. Comfortable up to ~200 dynamic bodies. Replace with a uniform spatial hash before pushing past that — the `step` interface stays the same.
+Cost is dominated by the O(N²) pair loop. Comfortable up to ~200 dynamic bodies.
 
 ### `destroy()`
 
@@ -207,4 +207,4 @@ Re-exported so you can type your own components if you build them outside the ca
 
 - **Imperative attach / detach.** Bodies aren't declarative — you can't `addComponent(world, id, physics.body, {...})` and have it Just Work, because `attach` does extra bookkeeping (deriving `invMass` from area, packing shape into `halfW`/`halfH`).
 - **No CCD.** A small fast-moving body can tunnel through a thin static. Either bump the body's radius / box size, or use multiple thinner walls.
-- **No sleeping bodies.** Every dynamic is integrated and pair-tested every step. With 200 dynamic bodies this is still well within frame budget on mid-tier devices.
+- **No sleeping bodies.** Every dynamic is integrated and pair-tested every step.

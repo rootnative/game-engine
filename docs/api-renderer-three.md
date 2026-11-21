@@ -237,6 +237,6 @@ addComponent(world, entity, mesh, { mesh: 1 }); // first glTF mesh
 ## Limitations
 
 - **No camera target component.** Directional lights default-target the origin; `PerspectiveCamera` is oriented purely from Euler rotation. There's no `LookAt` component — animate `transform.r{x,y,z}` to point things, or grab the camera ref via `setupScene`.
-- **`Map<EntityId, _>` iterators allocate.** The dead-entry sweep at the end of each pass uses `Map.forEach`, which allocates an iterator per pass. Negligible at prototype counts; switch to parallel arrays if profiling says it matters.
+- **`Map<EntityId, _>` iterators allocate.** The dead-entry sweep at the end of each pass uses `Map.forEach`, which allocates an iterator per pass.
 - **`mesh` index changes reassign `obj.geometry` / `obj.material`.** Three.js GC behavior on rapid swaps isn't fully verified — treat the mesh index as effectively static per entity for now.
 - **Single active camera.** The first entity with `active === 1` wins; there's no view-stacking, picture-in-picture, or split-screen support.
