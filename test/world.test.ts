@@ -24,6 +24,22 @@ describe('createWorld', () => {
       expect(() => createWorld({ capacity })).toThrow('positive integer')
     }
   })
+
+  // The type check, not Vitest, proves this test: each write below must be a
+  // type error. The function never runs, so the world stays intact.
+  it('makes the lifecycle fields read-only in the public type', () => {
+    const world = createWorld({ capacity: 1 })
+    const writes = () => {
+      // @ts-expect-error The entity functions own `nextId`.
+      world.nextId = 5
+      // @ts-expect-error The entity functions own `freeCount`.
+      world.freeCount = 1
+      // @ts-expect-error `defineComponent` owns the component list.
+      world.components.push(defineComponent(world, { v: 'u8' }))
+    }
+    expect(writes).toBeTypeOf('function')
+    expect(world.components).toHaveLength(0)
+  })
 })
 
 describe('entities', () => {

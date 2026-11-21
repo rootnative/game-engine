@@ -57,16 +57,18 @@ destroyEntity(world, id);
 ```ts
 interface World {
   readonly capacity: number;
-  readonly components: Component[];
+  readonly components: ReadonlyArray<Component>;
   readonly alive: Uint8Array;       // 1 = alive, 0 = dead
   readonly mask: Uint32Array;       // component bitmask per entity
   readonly freeList: Uint32Array;
-  freeCount: number;
-  nextId: EntityId;                 // high-water mark
+  readonly freeCount: number;
+  readonly nextId: EntityId;        // high-water mark
 }
 ```
 
 You rarely touch `World` fields directly. Renderers and physics step internally iterate `[0, world.nextId)`, gating on `alive[id] === 1` and the component mask.
+
+Read the fields, but don't write them. `createEntity`, `destroyEntity`, `addComponent`, `removeComponent` and `defineComponent` keep them in step, and the type marks each field `readonly`. TypeScript can't mark the contents of a typed array as read-only, so it doesn't stop a write to `alive`, `mask` or `freeList`. Such a write breaks the entity lifecycle.
 
 ---
 

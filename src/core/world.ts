@@ -2,6 +2,7 @@ import type {
   Component,
   ComponentSchema,
   EntityId,
+  MutableWorld,
   TypedArrayFor,
   World,
 } from './types'
@@ -27,25 +28,27 @@ export function createWorld(opts: CreateWorldOptions): World {
 }
 
 export function createEntity(world: World): EntityId {
+  const w = world as MutableWorld
   let id: EntityId
-  if (world.freeCount > 0) {
-    id = world.freeList[--world.freeCount]
+  if (w.freeCount > 0) {
+    id = w.freeList[--w.freeCount]
   } else {
-    if (world.nextId >= world.capacity) {
+    if (w.nextId >= w.capacity) {
       throw new Error('World capacity reached')
     }
-    id = world.nextId++
+    id = w.nextId++
   }
-  world.alive[id] = 1
-  world.mask[id] = 0
+  w.alive[id] = 1
+  w.mask[id] = 0
   return id
 }
 
 export function destroyEntity(world: World, id: EntityId): void {
-  if (world.alive[id] === 0) return
-  world.alive[id] = 0
-  world.mask[id] = 0
-  world.freeList[world.freeCount++] = id
+  const w = world as MutableWorld
+  if (w.alive[id] === 0) return
+  w.alive[id] = 0
+  w.mask[id] = 0
+  w.freeList[w.freeCount++] = id
 }
 
 export function addComponent<S extends ComponentSchema>(

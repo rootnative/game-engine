@@ -36,10 +36,23 @@ export interface Component<S extends ComponentSchema = ComponentSchema> {
 
 export interface World {
   readonly capacity: number
-  readonly components: Component[]
+  readonly components: ReadonlyArray<Component>
   readonly alive: Uint8Array
   readonly mask: Uint32Array
   readonly freeList: Uint32Array
+  readonly freeCount: number
+  readonly nextId: EntityId
+}
+
+/**
+ * @internal The writable shape of a `World`. Only the entity functions and
+ * `defineComponent` write to a world.
+ */
+export interface MutableWorld extends Omit<
+  World,
+  'components' | 'freeCount' | 'nextId'
+> {
+  readonly components: Component[]
   freeCount: number
   nextId: EntityId
 }

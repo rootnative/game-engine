@@ -3,6 +3,7 @@ import type {
   ComponentBuffer,
   ComponentSchema,
   FieldType,
+  MutableWorld,
   TypedArrayFor,
   World,
 } from './types'
@@ -54,6 +55,7 @@ export function defineComponent<S extends ComponentSchema>(
     schema,
     data: data as ComponentBuffer<S>,
   }
-  world.components.push(component)
+  const writable = world as MutableWorld
+  writable.components.push(component)
   return component
 }
