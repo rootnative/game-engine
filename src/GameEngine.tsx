@@ -5,6 +5,8 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
+  useState,
   type ReactNode,
 } from 'react'
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native'
@@ -65,11 +67,21 @@ export function GameEngine({
     ? use(systems)
     : systems
 
-  const loop = useMemo(
-    () => createLoop(resolvedWorld, resolvedSystems, { hz }),
-    [hz],
+  // One loop for each mount. A new loop would lose the screen size, the
+  // sim time and the queued touches, so `hz` counts only at mount.
+  const [loop] = useState(() =>
+    createLoop(resolvedWorld, resolvedSystems, { hz }),
   )
-  const engine = useMemo(() => toEngine(loop), [loop])
+  const [engine] = useState(() => toEngine(loop))
+
+  const mountHz = useRef(hz)
+  useEffect(() => {
+    if (hz !== mountHz.current && __DEV__) {
+      console.warn(
+        `<GameEngine> reads hz only at mount, so it still runs at ${mountHz.current} Hz, not ${hz}. To change the rate, remount it, for example with a new key.`,
+      )
+    }
+  }, [hz])
 
   useEffect(() => {
     loop.swap(resolvedWorld, resolvedSystems)

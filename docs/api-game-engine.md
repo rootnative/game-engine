@@ -56,7 +56,7 @@ Controls the loop's start/stop. Toggling from `true` → `false` calls `loop.sto
 
 ### `hz` (default `60`)
 
-Fixed-timestep rate in Hz. Passed straight to `createLoop`. **Changing `hz` after mount has no effect** — the loop is memoized on `hz` only and is not recreated on world/systems change.
+Fixed-timestep rate in Hz. Passed straight to `createLoop`. **`<GameEngine>` reads `hz` only at mount.** A later change has no effect, and React Native prints a warning in development. To change the rate, remount `<GameEngine>`, for example with a new `key`. A remount starts a new loop: the sim time starts at 0, and the queued touches and events are gone.
 
 ### `children`
 
@@ -214,7 +214,7 @@ If you mount `<GameEngine>` inside a non-flexed container, give it explicit widt
 ## Lifecycle
 
 1. **Resolve.** If `world` or `systems` is a Promise, `<GameEngine>` calls `use()` on it and suspends until settled. Sync values pass through untouched.
-2. **Mount.** Calls `createLoop(world, systems, { hz })`, memoized on `hz`.
+2. **Mount.** Calls `createLoop(world, systems, { hz })` one time. The loop stays for the life of the component.
 3. **First effect.** `loop.swap(world, systems)` is called once to bind the world and systems.
 4. **Running effect.** If `running` is true, `loop.start()`. The cleanup runs `loop.stop()`.
 5. **Re-render with new `world` or `systems`.** Triggers another `loop.swap`. The loop keeps running; the next tick uses the new state. With promises, this happens after the new promise resolves.
