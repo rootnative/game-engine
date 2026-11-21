@@ -1,20 +1,20 @@
-import { GameEngine } from '@rootnative/game-engine';
-import { ThreeRenderer, useGltf } from '@rootnative/game-engine/renderers/three';
-import { StatusBar } from 'expo-status-bar';
-import { Suspense, useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GameEngine } from '@rootnative/game-engine'
+import { ThreeRenderer, useGltf } from '@rootnative/game-engine/renderers/three'
+import { StatusBar } from 'expo-status-bar'
+import { Suspense, useMemo } from 'react'
+import { StyleSheet, View } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
-import { loadScene } from './src/scene';
+import { loadScene } from './src/scene'
 
 // Khronos's tiny "Box" sample. ~3 KB binary glTF, no external resources —
 // safest possible smoke test for the glb pipeline.
 const BOX_GLB =
-  'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Box/glTF-Binary/Box.glb';
+  'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Box/glTF-Binary/Box.glb'
 
 function GameView() {
-  const gltf = useGltf(BOX_GLB);
-  const scene = useMemo(() => loadScene(gltf), [gltf]);
+  const gltf = useGltf(BOX_GLB)
+  const scene = useMemo(() => loadScene(gltf), [gltf])
   const renderer = (
     <ThreeRenderer
       world={scene.world}
@@ -26,8 +26,14 @@ function GameView() {
       directionalLight={scene.directionalLight}
       clearColor={0x111111}
     />
-  );
-  return <GameEngine world={scene.world} systems={scene.systems} renderer={renderer} />;
+  )
+  return (
+    <GameEngine
+      world={scene.world}
+      systems={scene.systems}
+      renderer={renderer}
+    />
+  )
 }
 
 export default function App() {
@@ -40,9 +46,9 @@ export default function App() {
       </View>
       <StatusBar style="light" />
     </GestureHandlerRootView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
-});
+})

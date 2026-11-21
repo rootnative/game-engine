@@ -5,44 +5,44 @@ import type {
   System,
   TouchEvent,
   World,
-} from './types';
+} from './types'
 
 export interface LoopOptions {
-  readonly hz?: number;
-  readonly maxCatchUpMs?: number;
+  readonly hz?: number
+  readonly maxCatchUpMs?: number
 }
 
 export interface Loop {
-  readonly start: () => void;
-  readonly stop: () => void;
-  readonly pause: () => void;
-  readonly resume: () => void;
-  readonly isRunning: () => boolean;
-  readonly isPaused: () => boolean;
-  readonly swap: (world: World, systems: ReadonlyArray<System>) => void;
-  readonly setScreen: (width: number, height: number) => void;
-  readonly dispatch: (e: GameEvent) => void;
-  readonly pushTouch: (e: TouchEvent) => void;
-  readonly onAfterStep: (cb: () => void) => () => void;
+  readonly start: () => void
+  readonly stop: () => void
+  readonly pause: () => void
+  readonly resume: () => void
+  readonly isRunning: () => boolean
+  readonly isPaused: () => boolean
+  readonly swap: (world: World, systems: ReadonlyArray<System>) => void
+  readonly setScreen: (width: number, height: number) => void
+  readonly dispatch: (e: GameEvent) => void
+  readonly pushTouch: (e: TouchEvent) => void
+  readonly onAfterStep: (cb: () => void) => () => void
 }
 
 const now = (): number =>
   typeof performance !== 'undefined' && typeof performance.now === 'function'
     ? performance.now()
-    : Date.now();
+    : Date.now()
 
 export function createLoop(
   world: World,
   systems: ReadonlyArray<System>,
   opts: LoopOptions = {},
 ): Loop {
-  const hz = opts.hz ?? 60;
-  const stepMs = 1000 / hz;
-  const stepS = 1 / hz;
-  const maxCatchUpMs = opts.maxCatchUpMs ?? 250;
+  const hz = opts.hz ?? 60
+  const stepMs = 1000 / hz
+  const stepS = 1 / hz
+  const maxCatchUpMs = opts.maxCatchUpMs ?? 250
 
-  let currentWorld = world;
-  let currentSystems = systems;
+  let currentWorld = world
+  let currentSystems = systems
 
   const ctx = {
     time: { current: 0, previous: 0, delta: stepS, alpha: 1 },
@@ -50,107 +50,107 @@ export function createLoop(
     screen: { width: 0, height: 0 },
     events: [] as GameEvent[],
     dispatch(e: GameEvent) {
-      ctx.events.push(e);
+      ctx.events.push(e)
     },
-  };
-  const externalCtx: FrameContext = ctx;
+  }
+  const externalCtx: FrameContext = ctx
 
-  let running = false;
-  let paused = false;
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  let lastWall = 0;
-  let acc = 0;
-  const afterStep: Array<() => void> = [];
+  let running = false
+  let paused = false
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+  let lastWall = 0
+  let acc = 0
+  const afterStep: Array<() => void> = []
 
   const step = (): void => {
-    ctx.time.previous = ctx.time.current;
-    ctx.time.current += stepS;
-    const sys = currentSystems;
+    ctx.time.previous = ctx.time.current
+    ctx.time.current += stepS
+    const sys = currentSystems
     for (let i = 0; i < sys.length; i++) {
-      sys[i](currentWorld, externalCtx);
+      sys[i](currentWorld, externalCtx)
     }
-    ctx.events.length = 0;
-    ctx.input.touches.length = 0;
-  };
+    ctx.events.length = 0
+    ctx.input.touches.length = 0
+  }
 
   const tick = (): void => {
-    if (!running || paused) return;
-    const wall = now();
-    let delta = wall - lastWall;
-    lastWall = wall;
-    if (delta > maxCatchUpMs) delta = stepMs;
-    acc += delta;
-    let stepped = false;
+    if (!running || paused) return
+    const wall = now()
+    let delta = wall - lastWall
+    lastWall = wall
+    if (delta > maxCatchUpMs) delta = stepMs
+    acc += delta
+    let stepped = false
     while (acc >= stepMs) {
-      step();
-      acc -= stepMs;
-      stepped = true;
+      step()
+      acc -= stepMs
+      stepped = true
     }
     if (stepped) {
-      for (let i = 0; i < afterStep.length; i++) afterStep[i]();
+      for (let i = 0; i < afterStep.length; i++) afterStep[i]()
     }
     if (running && !paused) {
-      timeoutId = setTimeout(tick, Math.max(0, stepMs - acc));
+      timeoutId = setTimeout(tick, Math.max(0, stepMs - acc))
     }
-  };
+  }
 
   return {
     start(): void {
-      if (running) return;
-      running = true;
-      paused = false;
-      lastWall = now();
-      acc = 0;
-      tick();
+      if (running) return
+      running = true
+      paused = false
+      lastWall = now()
+      acc = 0
+      tick()
     },
     stop(): void {
-      running = false;
-      paused = false;
+      running = false
+      paused = false
       if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
+        clearTimeout(timeoutId)
+        timeoutId = null
       }
     },
     pause(): void {
-      if (!running || paused) return;
-      paused = true;
+      if (!running || paused) return
+      paused = true
       if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
+        clearTimeout(timeoutId)
+        timeoutId = null
       }
     },
     resume(): void {
-      if (!running || !paused) return;
-      paused = false;
-      lastWall = now();
-      acc = 0;
-      tick();
+      if (!running || !paused) return
+      paused = false
+      lastWall = now()
+      acc = 0
+      tick()
     },
     isRunning: () => running,
     isPaused: () => paused,
     swap(nextWorld, nextSystems): void {
-      currentWorld = nextWorld;
-      currentSystems = nextSystems;
-      acc = 0;
-      ctx.events.length = 0;
-      ctx.input.touches.length = 0;
+      currentWorld = nextWorld
+      currentSystems = nextSystems
+      acc = 0
+      ctx.events.length = 0
+      ctx.input.touches.length = 0
     },
     setScreen(width, height): void {
-      ctx.screen.width = width;
-      ctx.screen.height = height;
+      ctx.screen.width = width
+      ctx.screen.height = height
     },
     dispatch(e): void {
-      ctx.events.push(e);
+      ctx.events.push(e)
     },
     pushTouch(e): void {
-      ctx.input.touches.push(e);
+      ctx.input.touches.push(e)
     },
     onAfterStep(cb): () => void {
-      afterStep.push(cb);
+      afterStep.push(cb)
       return () => {
-        const i = afterStep.indexOf(cb);
-        if (i >= 0) afterStep.splice(i, 1);
-      };
+        const i = afterStep.indexOf(cb)
+        if (i >= 0) afterStep.splice(i, 1)
+      }
     },
-  };
+  }
 }

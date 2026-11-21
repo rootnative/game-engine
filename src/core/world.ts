@@ -4,16 +4,16 @@ import type {
   EntityId,
   TypedArrayFor,
   World,
-} from './types';
+} from './types'
 
 export interface CreateWorldOptions {
-  readonly capacity: number;
+  readonly capacity: number
 }
 
 export function createWorld(opts: CreateWorldOptions): World {
-  const { capacity } = opts;
+  const { capacity } = opts
   if (!Number.isInteger(capacity) || capacity <= 0) {
-    throw new Error('World capacity must be a positive integer');
+    throw new Error('World capacity must be a positive integer')
   }
   return {
     capacity,
@@ -23,29 +23,29 @@ export function createWorld(opts: CreateWorldOptions): World {
     freeList: new Uint32Array(capacity),
     freeCount: 0,
     nextId: 0,
-  };
+  }
 }
 
 export function createEntity(world: World): EntityId {
-  let id: EntityId;
+  let id: EntityId
   if (world.freeCount > 0) {
-    id = world.freeList[--world.freeCount];
+    id = world.freeList[--world.freeCount]
   } else {
     if (world.nextId >= world.capacity) {
-      throw new Error('World capacity reached');
+      throw new Error('World capacity reached')
     }
-    id = world.nextId++;
+    id = world.nextId++
   }
-  world.alive[id] = 1;
-  world.mask[id] = 0;
-  return id;
+  world.alive[id] = 1
+  world.mask[id] = 0
+  return id
 }
 
 export function destroyEntity(world: World, id: EntityId): void {
-  if (world.alive[id] === 0) return;
-  world.alive[id] = 0;
-  world.mask[id] = 0;
-  world.freeList[world.freeCount++] = id;
+  if (world.alive[id] === 0) return
+  world.alive[id] = 0
+  world.mask[id] = 0
+  world.freeList[world.freeCount++] = id
 }
 
 export function addComponent<S extends ComponentSchema>(
@@ -54,17 +54,25 @@ export function addComponent<S extends ComponentSchema>(
   component: Component<S>,
   values?: Partial<{ readonly [K in keyof S]: number }>,
 ): void {
-  world.mask[id] |= component.bit;
-  const data = component.data as Record<string, TypedArrayFor<S[keyof S]>>;
+  world.mask[id] |= component.bit
+  const data = component.data as Record<string, TypedArrayFor<S[keyof S]>>
   for (const key of Object.keys(component.schema)) {
-    data[key][id] = values?.[key] ?? 0;
+    data[key][id] = values?.[key] ?? 0
   }
 }
 
-export function removeComponent(world: World, id: EntityId, component: Component): void {
-  world.mask[id] &= ~component.bit;
+export function removeComponent(
+  world: World,
+  id: EntityId,
+  component: Component,
+): void {
+  world.mask[id] &= ~component.bit
 }
 
-export function hasComponent(world: World, id: EntityId, component: Component): boolean {
-  return (world.mask[id] & component.bit) !== 0;
+export function hasComponent(
+  world: World,
+  id: EntityId,
+  component: Component,
+): boolean {
+  return (world.mask[id] & component.bit) !== 0
 }

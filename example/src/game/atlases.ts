@@ -1,20 +1,29 @@
-import { Skia, type SkImage } from '@shopify/react-native-skia';
-import { gridFrames, type SkiaAtlas } from '@rootnative/game-engine/renderers/skia';
+import { Skia, type SkImage } from '@shopify/react-native-skia'
+import {
+  gridFrames,
+  type SkiaAtlas,
+} from '@rootnative/game-engine/renderers/skia'
 
-import { BALL_RADIUS, BRICK_H, BRICK_W, PADDLE_HEIGHT, PADDLE_WIDTH } from './constants';
+import {
+  BALL_RADIUS,
+  BRICK_H,
+  BRICK_W,
+  PADDLE_HEIGHT,
+  PADDLE_WIDTH,
+} from './constants'
 
-const BRICK_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'];
+const BRICK_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6']
 
 function makeCircleImage(radius: number, color: string): SkImage | null {
-  const size = radius * 2;
-  const surface = Skia.Surface.Make(size, size);
-  if (!surface) return null;
-  const canvas = surface.getCanvas();
-  const paint = Skia.Paint();
-  paint.setColor(Skia.Color(color));
-  paint.setAntiAlias(true);
-  canvas.drawCircle(radius, radius, radius - 0.5, paint);
-  return surface.makeImageSnapshot();
+  const size = radius * 2
+  const surface = Skia.Surface.Make(size, size)
+  if (!surface) return null
+  const canvas = surface.getCanvas()
+  const paint = Skia.Paint()
+  paint.setColor(Skia.Color(color))
+  paint.setAntiAlias(true)
+  canvas.drawCircle(radius, radius, radius - 0.5, paint)
+  return surface.makeImageSnapshot()
 }
 
 function makeRoundedRectImage(
@@ -23,35 +32,39 @@ function makeRoundedRectImage(
   color: string,
   radius = 4,
 ): SkImage | null {
-  const surface = Skia.Surface.Make(width, height);
-  if (!surface) return null;
-  const canvas = surface.getCanvas();
-  const paint = Skia.Paint();
-  paint.setColor(Skia.Color(color));
-  paint.setAntiAlias(true);
-  const rrect = Skia.RRectXY(Skia.XYWHRect(0, 0, width, height), radius, radius);
-  canvas.drawRRect(rrect, paint);
-  return surface.makeImageSnapshot();
+  const surface = Skia.Surface.Make(width, height)
+  if (!surface) return null
+  const canvas = surface.getCanvas()
+  const paint = Skia.Paint()
+  paint.setColor(Skia.Color(color))
+  paint.setAntiAlias(true)
+  const rrect = Skia.RRectXY(Skia.XYWHRect(0, 0, width, height), radius, radius)
+  canvas.drawRRect(rrect, paint)
+  return surface.makeImageSnapshot()
 }
 
 function makeBrickAtlasImage(): SkImage | null {
-  const surface = Skia.Surface.Make(BRICK_W, BRICK_H * BRICK_COLORS.length);
-  if (!surface) return null;
-  const canvas = surface.getCanvas();
-  const paint = Skia.Paint();
-  paint.setAntiAlias(true);
+  const surface = Skia.Surface.Make(BRICK_W, BRICK_H * BRICK_COLORS.length)
+  if (!surface) return null
+  const canvas = surface.getCanvas()
+  const paint = Skia.Paint()
+  paint.setAntiAlias(true)
   for (let i = 0; i < BRICK_COLORS.length; i++) {
-    paint.setColor(Skia.Color(BRICK_COLORS[i]));
-    const rrect = Skia.RRectXY(Skia.XYWHRect(0, i * BRICK_H, BRICK_W, BRICK_H), 3, 3);
-    canvas.drawRRect(rrect, paint);
+    paint.setColor(Skia.Color(BRICK_COLORS[i]))
+    const rrect = Skia.RRectXY(
+      Skia.XYWHRect(0, i * BRICK_H, BRICK_W, BRICK_H),
+      3,
+      3,
+    )
+    canvas.drawRRect(rrect, paint)
   }
-  return surface.makeImageSnapshot();
+  return surface.makeImageSnapshot()
 }
 
 export function buildAtlases(): ReadonlyArray<SkiaAtlas> {
-  const ball = makeCircleImage(BALL_RADIUS, '#111827');
-  const paddle = makeRoundedRectImage(PADDLE_WIDTH, PADDLE_HEIGHT, '#1f2937', 6);
-  const bricks = makeBrickAtlasImage();
+  const ball = makeCircleImage(BALL_RADIUS, '#111827')
+  const paddle = makeRoundedRectImage(PADDLE_WIDTH, PADDLE_HEIGHT, '#1f2937', 6)
+  const bricks = makeBrickAtlasImage()
   return [
     {
       image: ball,
@@ -70,5 +83,5 @@ export function buildAtlases(): ReadonlyArray<SkiaAtlas> {
         rows: BRICK_COLORS.length,
       }),
     },
-  ];
+  ]
 }

@@ -1,14 +1,14 @@
-import { File } from 'expo-file-system';
-import { use } from 'react';
-import * as THREE from 'three';
+import { File } from 'expo-file-system'
+import { use } from 'react'
+import * as THREE from 'three'
 // three.js's `exports` field maps `./examples/jsm/*` straight through to
 // `./examples/jsm/*`, so the `.js` extension is required — Metro's bundler
 // resolves the path verbatim and would warn / error on extensionless paths
 // the same way it does for `expo-three`'s loader barrel.
-import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-import { loadAsset, type AssetSource } from '../../assets';
-import type { MeshDef } from './ThreeRenderer';
+import { loadAsset, type AssetSource } from '../../assets'
+import type { MeshDef } from './ThreeRenderer'
 
 // React Native polyfills `navigator` (so `typeof navigator !== 'undefined'`
 // is true) but does not set `userAgent`. GLTFParser's constructor branches
@@ -20,10 +20,10 @@ if (
   typeof navigator !== 'undefined' &&
   typeof (navigator as { userAgent?: unknown }).userAgent !== 'string'
 ) {
-  (navigator as { userAgent?: string }).userAgent = 'react-native';
+  ;(navigator as { userAgent?: string }).userAgent = 'react-native'
 }
 
-const inflight = new Map<AssetSource, Promise<GLTF>>();
+const inflight = new Map<AssetSource, Promise<GLTF>>()
 
 /**
  * Decode a `.glb` (or `.gltf` with embedded resources) into a parsed `GLTF`.
@@ -40,26 +40,26 @@ const inflight = new Map<AssetSource, Promise<GLTF>>();
  * to `.glb` (single-file binary) at export time, or open an issue.
  */
 export function loadGltf(source: AssetSource): Promise<GLTF> {
-  let p = inflight.get(source);
+  let p = inflight.get(source)
   if (!p) {
-    p = resolveGltf(source);
-    inflight.set(source, p);
+    p = resolveGltf(source)
+    inflight.set(source, p)
   }
-  return p;
+  return p
 }
 
 /** Suspense-friendly variant. Calls `use()` on the cached promise. */
 export function useGltf(source: AssetSource): GLTF {
-  return use(loadGltf(source));
+  return use(loadGltf(source))
 }
 
 async function resolveGltf(source: AssetSource): Promise<GLTF> {
-  const asset = await loadAsset(source);
-  const ab = await new File(asset.localUri).arrayBuffer();
-  const loader = new GLTFLoader();
+  const asset = await loadAsset(source)
+  const ab = await new File(asset.localUri).arrayBuffer()
+  const loader = new GLTFLoader()
   return new Promise<GLTF>((resolve, reject) => {
-    loader.parse(ab, '/', resolve, reject);
-  });
+    loader.parse(ab, '/', resolve, reject)
+  })
 }
 
 /**
@@ -74,12 +74,12 @@ async function resolveGltf(source: AssetSource): Promise<GLTF> {
  * through the ECS.
  */
 export function extractMeshDefs(gltf: GLTF): MeshDef[] {
-  const out: MeshDef[] = [];
+  const out: MeshDef[] = []
   gltf.scene.traverse((obj) => {
-    const mesh = obj as THREE.Mesh;
+    const mesh = obj as THREE.Mesh
     if (mesh.isMesh) {
-      out.push({ geometry: mesh.geometry, material: mesh.material });
+      out.push({ geometry: mesh.geometry, material: mesh.material })
     }
-  });
-  return out;
+  })
+  return out
 }

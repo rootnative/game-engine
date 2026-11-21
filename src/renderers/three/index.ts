@@ -1,4 +1,4 @@
-export { ThreeRenderer } from './ThreeRenderer';
+export { ThreeRenderer } from './ThreeRenderer'
 export type {
   ThreeRendererProps,
   Transform3DComponent,
@@ -8,5 +8,5 @@ export type {
   AmbientLightComponent,
   DirectionalLightComponent,
   PointLightComponent,
-} from './ThreeRenderer';
-export { loadGltf, useGltf, extractMeshDefs } from './loader';
+} from './ThreeRenderer'
+export { loadGltf, useGltf, extractMeshDefs } from './loader'

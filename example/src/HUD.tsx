@@ -1,9 +1,9 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native'
 
-import { useGameState } from './game/store';
+import { useGameState } from './game/store'
 
 export function HUD() {
-  const state = useGameState();
+  const state = useGameState()
   return (
     <View pointerEvents="none" style={styles.container}>
       <View style={styles.topBar}>
@@ -13,17 +13,19 @@ export function HUD() {
       {state.status !== 'playing' ? (
         <View style={styles.banner}>
           <Text style={styles.title}>{titleFor(state.status)}</Text>
-          <Text style={styles.subtitle}>Tap to {state.status === 'ready' ? 'start' : 'play again'}</Text>
+          <Text style={styles.subtitle}>
+            Tap to {state.status === 'ready' ? 'start' : 'play again'}
+          </Text>
         </View>
       ) : null}
     </View>
-  );
+  )
 }
 
 function titleFor(status: 'ready' | 'won' | 'lost'): string {
-  if (status === 'ready') return 'Breakout';
-  if (status === 'won') return 'You win!';
-  return 'Game over';
+  if (status === 'ready') return 'Breakout'
+  if (status === 'won') return 'You win!'
+  return 'Game over'
 }
 
 const styles = StyleSheet.create({
@@ -60,4 +62,4 @@ const styles = StyleSheet.create({
     color: '#4b5563',
     fontSize: 16,
   },
-});
+})

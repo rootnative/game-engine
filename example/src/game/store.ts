@@ -1,52 +1,57 @@
-import { useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react'
 
-export type GameStatus = 'ready' | 'playing' | 'won' | 'lost';
+export type GameStatus = 'ready' | 'playing' | 'won' | 'lost'
 
 export interface GameState {
-  readonly score: number;
-  readonly lives: number;
-  readonly bricksLeft: number;
-  readonly status: GameStatus;
+  readonly score: number
+  readonly lives: number
+  readonly bricksLeft: number
+  readonly status: GameStatus
 }
 
-const INITIAL: GameState = { score: 0, lives: 3, bricksLeft: 0, status: 'ready' };
+const INITIAL: GameState = {
+  score: 0,
+  lives: 3,
+  bricksLeft: 0,
+  status: 'ready',
+}
 
-let state: GameState = INITIAL;
-const listeners = new Set<() => void>();
+let state: GameState = INITIAL
+const listeners = new Set<() => void>()
 
 function emit(): void {
-  listeners.forEach((l) => l());
+  listeners.forEach((l) => l())
 }
 
 export const gameStore = {
   get(): GameState {
-    return state;
+    return state
   },
   set(patch: Partial<GameState>): void {
-    const next = { ...state, ...patch };
+    const next = { ...state, ...patch }
     if (
       next.score === state.score &&
       next.lives === state.lives &&
       next.bricksLeft === state.bricksLeft &&
       next.status === state.status
     ) {
-      return;
+      return
     }
-    state = next;
-    emit();
+    state = next
+    emit()
   },
   reset(patch?: Partial<GameState>): void {
-    state = { ...INITIAL, ...patch };
-    emit();
+    state = { ...INITIAL, ...patch }
+    emit()
   },
   subscribe(fn: () => void): () => void {
-    listeners.add(fn);
+    listeners.add(fn)
     return () => {
-      listeners.delete(fn);
-    };
+      listeners.delete(fn)
+    }
   },
-};
+}
 
 export function useGameState(): GameState {
-  return useSyncExternalStore(gameStore.subscribe, gameStore.get, gameStore.get);
+  return useSyncExternalStore(gameStore.subscribe, gameStore.get, gameStore.get)
 }

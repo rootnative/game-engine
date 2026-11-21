@@ -150,6 +150,9 @@ jobs:
       # The same gates as CI, in the same order. No input skips them. The
       # type check runs before the build, so it checks `src/` and not a
       # stale `dist/`.
+      - name: Format check
+        run: pnpm run format:check
+
       - name: Typecheck
         run: pnpm run typecheck
 

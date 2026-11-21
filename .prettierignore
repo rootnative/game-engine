@@ -1,0 +1,17 @@
+node_modules
+dist
+.expo
+pnpm-lock.yaml
+
+# Markdown is written by hand, not formatted.
+#
+# Prettier pads every cell of a table to the width of its widest row. Several
+# documents here have long cells, so Prettier rewrites those tables into very
+# long lines that don't diff well and don't fit in a terminal. It also
+# reflows code inside fences, which breaks samples written to match a call
+# site.
+#
+# The ignore is here as well as in the `format` globs, so an editor with
+# format-on-save doesn't undo the rule.
+*.md
+*.mdx

@@ -11,9 +11,9 @@ export type {
   FrameContext,
   GameEvent,
   System,
-} from './types';
+} from './types'
 
-export { defineComponent } from './component';
+export { defineComponent } from './component'
 export {
   createWorld,
   createEntity,
@@ -21,9 +21,9 @@ export {
   addComponent,
   removeComponent,
   hasComponent,
-} from './world';
-export type { CreateWorldOptions } from './world';
-export { query } from './query';
-export type { Query } from './query';
-export { createLoop } from './loop';
-export type { Loop, LoopOptions } from './loop';
+} from './world'
+export type { CreateWorldOptions } from './world'
+export { query } from './query'
+export type { Query } from './query'
+export { createLoop } from './loop'
+export type { Loop, LoopOptions } from './loop'

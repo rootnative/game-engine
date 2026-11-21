@@ -58,6 +58,8 @@
     "build:llms": "node scripts/build-llms-full.mjs",
     "build:brand": "node scripts/build-brand.mjs",
     "typecheck": "tsc --noEmit && pnpm --filter example typecheck && pnpm --filter example-3d typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,cjs,mjs,json}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,cjs,mjs,json}\"",
     "prepack": "pnpm build && pnpm build:llms",
     "start": "pnpm --filter example start",
     "ios": "pnpm --filter example ios",
@@ -82,10 +84,18 @@
     "three": "^0.166.0"
   },
   "peerDependenciesMeta": {
-    "@shopify/react-native-skia": { "optional": true },
-    "expo-gl": { "optional": true },
-    "expo-three": { "optional": true },
-    "three": { "optional": true }
+    "@shopify/react-native-skia": {
+      "optional": true
+    },
+    "expo-gl": {
+      "optional": true
+    },
+    "expo-three": {
+      "optional": true
+    },
+    "three": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@shopify/react-native-skia": "2.14.0",
@@ -93,6 +103,7 @@
     "expo": "~58.0.26",
     "expo-asset": "~58.0.21",
     "expo-file-system": "~58.0.14",
+    "prettier": "^3.10.1",
     "react": "19.3.0",
     "react-native": "0.88.1",
     "react-native-gesture-handler": "~3.3.0",

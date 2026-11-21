@@ -22,6 +22,8 @@ on:
       - "tsconfig.build.json"
       - ".nvmrc"
       - ".npmrc"
+      - ".prettierrc"
+      - ".prettierignore"
       - ".github/workflows/ci-build.yml"
   pull_request:
     paths:
@@ -39,6 +41,8 @@ on:
       - "tsconfig.build.json"
       - ".nvmrc"
       - ".npmrc"
+      - ".prettierrc"
+      - ".prettierignore"
       - ".github/workflows/ci-build.yml"
 
 # The token only reads the repository.
@@ -68,6 +72,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Format check
+        run: pnpm run format:check
 
       # Runs before the build on purpose. With no `dist/`, the examples
       # resolve the engine through the `react-native` condition, which points
