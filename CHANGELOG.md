@@ -35,5 +35,5 @@ The first release. A 2D and 3D game engine for React Native that runs inside Exp
 - **The remote asset cache uses the URL as the key, not the content.** If a URL can serve different bytes, put a version in the URL or call `clearAssetCache()`.
 - **No WebAssembly.** Expo Go runs Hermes, which does not support WebAssembly. So physics engines such as `rapier` and `box2d-wasm` cannot run.
 
-[Unreleased]: https://github.com/rootnative/game-engine/compare/0.0.0-alpha.1...HEAD
-[0.0.0-alpha.1]: https://github.com/rootnative/game-engine/releases/tag/0.0.0-alpha.1
+[Unreleased]: https://github.com/rootnative/game-engine/compare/game-engine@0.0.0-alpha.1...HEAD
+[0.0.0-alpha.1]: https://github.com/rootnative/game-engine/releases/tag/game-engine@0.0.0-alpha.1
