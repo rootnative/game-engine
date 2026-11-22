@@ -3,6 +3,8 @@ name: CI / Build & Test
 # `example/**` and `example-3d/**` are in the filter because
 # `pnpm run typecheck` also typechecks both example apps. `README.md` and
 # `docs/**` are in it because they are the sources of `llms-full.txt`.
+# `CHANGELOG.md`, `LICENSE` and `llms.txt` are in it because they ship in the
+# tarball that the consumer job uploads.
 on:
   push:
     branches:
@@ -16,6 +18,9 @@ on:
       - "docs/**"
       - "scripts/**"
       - "README.md"
+      - "CHANGELOG.md"
+      - "LICENSE"
+      - "llms.txt"
       - "llms-full.txt"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -38,6 +43,9 @@ on:
       - "docs/**"
       - "scripts/**"
       - "README.md"
+      - "CHANGELOG.md"
+      - "LICENSE"
+      - "llms.txt"
       - "llms-full.txt"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -127,5 +135,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Pack
+        run: |
+          mkdir -p "$RUNNER_TEMP/pack"
+          npm pack --pack-destination "$RUNNER_TEMP/pack"
+
       - name: Consumer check
-        run: node scripts/check-consumer.mjs
+        run: node scripts/check-consumer.mjs --tarball "$RUNNER_TEMP"/pack/*.tgz
+
+      # The tarball that passed the consumer check. `npm publish <file>` runs
+      # no build, so a maintainer can publish this exact file by hand.
+      - name: Upload the tarball
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: package-tarball
+          path: ${{ runner.temp }}/pack/*.tgz
+          retention-days: 30
+          if-no-files-found: error
