@@ -4,7 +4,7 @@ All notable changes to `@rootnative/game-engine` are recorded here. The format f
 
 ## [Unreleased]
 
-## [0.0.0-alpha.1] - 2026-10-14
+## [0.0.0-alpha.1] - 2026-11-23
 
 The first release. A 2D and 3D game engine for React Native that runs inside Expo Go, with no custom native code, no `expo prebuild`, and no config plugins. The engine core does not know about the renderer, and each renderer is a separate subpath export.
 
