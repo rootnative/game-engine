@@ -33,13 +33,28 @@ export interface PhysicsOptions {
   readonly position: Position2D
   readonly velocity: Velocity2D
   readonly gravity?: { readonly x: number; readonly y: number }
+  readonly maxContacts?: number
 }
+
+export interface Contacts {
+  readonly count: number
+  readonly dropped: number
+  readonly a: Uint32Array
+  readonly b: Uint32Array
+  readonly nx: Float32Array
+  readonly ny: Float32Array
+  readonly depth: Float32Array
+  readonly impulse: Float32Array
+}
+
+type MutableContacts = { -readonly [K in keyof Contacts]: Contacts[K] }
 
 export interface Physics {
   readonly body: BodyComponent
   readonly attach: (id: EntityId, def: BodyDef) => void
   readonly detach: (id: EntityId) => void
   readonly step: System
+  readonly contacts: Contacts
   readonly destroy: () => void
 }
 
@@ -76,6 +91,21 @@ export function createPhysics(opts: PhysicsOptions): Physics {
 
   const gravityX = opts.gravity?.x ?? 0
   const gravityY = opts.gravity?.y ?? 600
+
+  const maxContacts = opts.maxContacts ?? 2 * ecsWorld.capacity
+  if (!Number.isInteger(maxContacts) || maxContacts <= 0) {
+    throw new Error('maxContacts must be a positive integer')
+  }
+  const contacts: MutableContacts = {
+    count: 0,
+    dropped: 0,
+    a: new Uint32Array(maxContacts),
+    b: new Uint32Array(maxContacts),
+    nx: new Float32Array(maxContacts),
+    ny: new Float32Array(maxContacts),
+    depth: new Float32Array(maxContacts),
+    impulse: new Float32Array(maxContacts),
+  }
 
   const dynamicIds: number[] = []
   const staticIds: number[] = []
@@ -137,6 +167,28 @@ export function createPhysics(opts: PhysicsOptions): Physics {
     ny: number,
     overlap: number,
   ): void {
+    // A record always has the lower id as `a`, so one pair has one form.
+    if (a > b) {
+      const lower = b
+      b = a
+      a = lower
+      nx = -nx
+      ny = -ny
+    }
+
+    let record = -1
+    if (contacts.count < maxContacts) {
+      record = contacts.count++
+      contacts.a[record] = a
+      contacts.b[record] = b
+      contacts.nx[record] = nx
+      contacts.ny[record] = ny
+      contacts.depth[record] = overlap
+      contacts.impulse[record] = 0
+    } else {
+      contacts.dropped++
+    }
+
     const ima = invMass[a]
     const imb = invMass[b]
     const totalIM = ima + imb
@@ -156,6 +208,7 @@ export function createPhysics(opts: PhysicsOptions): Physics {
 
     const e = rest[a] < rest[b] ? rest[a] : rest[b]
     const j = (-(1 + e) * velN) / totalIM
+    if (record >= 0) contacts.impulse[record] = j
     velX[a] -= j * nx * ima
     velY[a] -= j * ny * ima
     velX[b] += j * nx * imb
@@ -270,6 +323,8 @@ export function createPhysics(opts: PhysicsOptions): Physics {
   const step: System = (_w, ctx) => {
     const dt = ctx.time.delta
 
+    contacts.count = 0
+    contacts.dropped = 0
     dynamicIds.length = 0
     staticIds.length = 0
     const n = ecsWorld.nextId
@@ -315,7 +370,10 @@ export function createPhysics(opts: PhysicsOptions): Physics {
     attach,
     detach,
     step,
+    contacts,
     destroy() {
+      contacts.count = 0
+      contacts.dropped = 0
       dynamicIds.length = 0
       staticIds.length = 0
     },

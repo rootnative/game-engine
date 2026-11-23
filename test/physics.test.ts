@@ -23,7 +23,10 @@ function frame(delta: number): FrameContext {
   }
 }
 
-function setup(gravity?: PhysicsOptions['gravity']) {
+function setup(
+  gravity?: PhysicsOptions['gravity'],
+  maxContacts?: PhysicsOptions['maxContacts'],
+) {
   const world = createWorld({ capacity: 16 })
   const Position = defineComponent(world, { x: 'f32', y: 'f32' })
   const Velocity = defineComponent(world, { x: 'f32', y: 'f32' })
@@ -32,6 +35,7 @@ function setup(gravity?: PhysicsOptions['gravity']) {
     position: Position,
     velocity: Velocity,
     gravity,
+    maxContacts,
   })
   const body = (def: BodyDef) => {
     const id = createEntity(world)
@@ -298,6 +302,152 @@ describe('contacts', () => {
     step()
     expect(pos(a)).toEqual([0, 0])
     expect(pos(b)).toEqual([5, 0])
+  })
+})
+
+describe('contact records', () => {
+  const circle = { kind: 'circle', radius: 10 } as const
+  const box = { kind: 'box', width: 20, height: 20 } as const
+
+  /** Two dynamic bodies, 20 wide, whose centres are 15 apart on the x axis. */
+  function overlappingPair(
+    first: BodyDef['shape'],
+    second: BodyDef['shape'],
+    maxContacts?: number,
+  ) {
+    const s = setup(NO_GRAVITY, maxContacts)
+    const a = s.body({
+      type: 'dynamic',
+      position: { x: 0, y: 0 },
+      shape: first,
+    })
+    const b = s.body({
+      type: 'dynamic',
+      position: { x: 15, y: 0 },
+      shape: second,
+    })
+    return { ...s, a, b }
+  }
+
+  it('records the two ids, the normal, the overlap and the impulse', () => {
+    const { ballId, physics, step } = ballOnFloor()
+    step()
+    const c = physics.contacts
+    expect(c.count).toBe(1)
+    expect(c.dropped).toBe(0)
+    expect(c.a[0]).toBe(0)
+    expect(c.b[0]).toBe(ballId)
+    expect([c.nx[0], c.ny[0]]).toEqual([0, -1])
+    expect(c.depth[0]).toBeCloseTo(5)
+    const ballMass = Math.PI * 10 * 10
+    expect(c.impulse[0] / (600 * ballMass)).toBeCloseTo(1, 5)
+  })
+
+  it.each([
+    ['circle', 'circle', circle, circle],
+    ['circle', 'box', circle, box],
+    ['box', 'circle', box, circle],
+    ['box', 'box', box, box],
+  ])(
+    'points the normal from the lower id to the higher id: %s, then %s',
+    (_first, _second, first, second) => {
+      const { a, b, physics, step } = overlappingPair(first, second)
+      step()
+      const c = physics.contacts
+      expect(c.count).toBe(1)
+      expect(c.a[0]).toBe(a)
+      expect(c.b[0]).toBe(b)
+      expect(c.nx[0]).toBe(1)
+      expect(c.ny[0]).toBeCloseTo(0)
+      expect(c.depth[0]).toBeCloseTo(5)
+    },
+  )
+
+  it('keeps the lower id first when the static body has the higher id', () => {
+    const { body, physics, step } = setup(NO_GRAVITY)
+    const ball = body({
+      type: 'dynamic',
+      position: { x: 0, y: 0 },
+      velocity: { x: 0, y: 600 },
+      shape: circle,
+    })
+    const floor = body({
+      type: 'static',
+      position: { x: 0, y: 25 },
+      shape: { kind: 'box', width: 200, height: 20 },
+    })
+    step()
+    const c = physics.contacts
+    expect(c.a[0]).toBe(ball)
+    expect(c.b[0]).toBe(floor)
+    expect(c.nx[0]).toBeCloseTo(0)
+    expect(c.ny[0]).toBe(1)
+  })
+
+  it('gives no impulse to two bodies that already move apart', () => {
+    const { a, b, Velocity, physics, step } = overlappingPair(circle, circle)
+    Velocity.data.x[a] = -60
+    Velocity.data.x[b] = 60
+    step()
+    expect(physics.contacts.count).toBe(1)
+    expect(physics.contacts.impulse[0]).toBe(0)
+  })
+
+  it('starts each step with no records', () => {
+    const { physics, step } = ballOnFloor(
+      { restitution: 1 },
+      { restitution: 1 },
+    )
+    step()
+    expect(physics.contacts.count).toBe(1)
+    step()
+    expect(physics.contacts.count).toBe(0)
+  })
+
+  it('records nothing for two static bodies', () => {
+    const { body, physics, step } = setup(NO_GRAVITY)
+    body({ type: 'static', position: { x: 0, y: 0 }, shape: box })
+    body({ type: 'static', position: { x: 5, y: 0 }, shape: box })
+    step()
+    expect(physics.contacts.count).toBe(0)
+  })
+
+  it('resolves a contact that does not fit, and counts it as dropped', () => {
+    const { body, physics, pos, step } = overlappingPair(circle, circle, 1)
+    const c = body({
+      type: 'dynamic',
+      position: { x: 100, y: 0 },
+      shape: circle,
+    })
+    const d = body({
+      type: 'dynamic',
+      position: { x: 115, y: 0 },
+      shape: circle,
+    })
+    step()
+    expect(physics.contacts.count).toBe(1)
+    expect(physics.contacts.dropped).toBe(1)
+    expect(pos(d)[0] - pos(c)[0]).toBeCloseTo(20)
+    step()
+    expect(physics.contacts.dropped).toBe(0)
+  })
+
+  it('has room for 2 contacts for each entity when no size is given', () => {
+    const { world, physics } = setup()
+    expect(physics.contacts.a.length).toBe(2 * world.capacity)
+  })
+
+  it.each([0, -1, 1.5])('refuses %s as the size of the buffer', (size) => {
+    expect(() => setup(NO_GRAVITY, size)).toThrow(
+      'maxContacts must be a positive integer',
+    )
+  })
+
+  it('clears the records on destroy', () => {
+    const { physics, step } = ballOnFloor()
+    step()
+    physics.destroy()
+    expect(physics.contacts.count).toBe(0)
   })
 })
 

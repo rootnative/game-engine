@@ -850,12 +850,13 @@ import type {
   BodyDef,
   BodyShape,
   BodyComponent,
+  Contacts,
   Position2D,
   Velocity2D,
 } from '@rootnative/game-engine';
 ```
 
-A custom **circles + axis-aligned-box** solver built directly on the ECS TypedArrays. Roughly 250 lines, allocation-free in the hot loop, and it does only what arcade games need.
+A custom **circles + axis-aligned-box** solver built directly on the ECS TypedArrays. Allocation-free in the hot loop, and it does only what arcade games need.
 
 **What it does:** position-separation, restitution impulse, Coulomb friction. Single-pass resolution per contact.
 
@@ -873,6 +874,7 @@ interface PhysicsOptions {
   readonly position: Position2D;            // Component<{ x: 'f32'; y: 'f32' }>
   readonly velocity: Velocity2D;            // Component<{ x: 'f32'; y: 'f32' }>
   readonly gravity?: { readonly x: number; readonly y: number };  // default { x: 0, y: 600 }
+  readonly maxContacts?: number;            // default 2 * world.capacity
 }
 ```
 
@@ -894,6 +896,7 @@ const systems = [physics.step];
 
 - Gravity defaults to `(0, 600)` px/s². Pass `{ x: 0, y: 0 }` to disable.
 - All values are in **pixels and seconds**. No meters/PPM conversion.
+- `maxContacts` is the number of records that [`contacts`](#contacts) can hold. It must be a positive integer.
 
 ---
 
@@ -905,6 +908,7 @@ interface Physics {
   readonly attach: (id: EntityId, def: BodyDef) => void;
   readonly detach: (id: EntityId) => void;
   readonly step: System;
+  readonly contacts: Contacts;
   readonly destroy: () => void;
 }
 ```
@@ -962,13 +966,55 @@ The `System` you put in your system list. Runs one fixed timestep per call:
 3. Test dynamic-vs-static pairs.
 4. Test dynamic-vs-dynamic pairs (O(N²) broadphase).
 
-Each overlapping pair is resolved inline as it's found — positional separation by inverse-mass ratio, then restitution impulse, then Coulomb friction (clamped to `μ * j_normal`). There's no separate contact-resolution phase and no contact list; resolution happens inside the pair test.
+Each overlapping pair is resolved inline as it's found — positional separation by inverse-mass ratio, then restitution impulse, then Coulomb friction (clamped to `μ * j_normal`). There's no separate contact-resolution phase; resolution happens inside the pair test. Each pair also gets a record in [`contacts`](#contacts).
 
 Cost is dominated by the O(N²) pair loop. Comfortable up to ~200 dynamic bodies.
 
+### `contacts`
+
+The pairs of bodies that touched in the last `step`. Read it in a system that runs after `physics.step`.
+
+```ts
+interface Contacts {
+  readonly count: number;         // the number of records
+  readonly dropped: number;       // the contacts that did not fit
+  readonly a: Uint32Array;        // the lower entity id of the pair
+  readonly b: Uint32Array;        // the higher entity id of the pair
+  readonly nx: Float32Array;      // the normal, from a to b
+  readonly ny: Float32Array;
+  readonly depth: Float32Array;   // the overlap before the separation, in px
+  readonly impulse: Float32Array; // the normal impulse
+}
+```
+
+Record `i` is the same index in each array. Only the indexes below `count` hold records.
+
+```ts
+const breakBricks: System = (world) => {
+  const c = physics.contacts;
+  for (let i = 0; i < c.count; i++) {
+    const other = c.a[i] === ballId ? c.b[i] : c.b[i] === ballId ? c.a[i] : -1;
+    if (other >= 0 && hasComponent(world, other, Brick)) {
+      destroyEntity(world, other);
+    }
+  }
+};
+
+const systems = [physics.step, breakBricks];
+```
+
+- **The records live for one step.** The next `step` starts with `count` at 0. Copy what you need to keep.
+- **`a` is always the lower id.** So one pair has one form, and you check both `a` and `b` for your entity.
+- **The normal is a unit vector from `a` to `b`.** With y down, `(0, 1)` means that `b` is below `a`.
+- **`impulse` is the size of the hit**, in mass × px/s. It is `0` when the two bodies already move apart. Use it for the volume of a sound or for damage.
+- **An entity can be in more than one record.** If you destroy it in one record, check `hasComponent` before you use it in the next one.
+- **A full buffer drops records, not physics.** The pair is still resolved, and `dropped` counts it. If `dropped` isn't 0, raise `maxContacts`.
+
+The arrays are allocated one time, in `createPhysics`. A step allocates nothing for them.
+
 ### `destroy()`
 
-Clears the internal work lists. Call from a cleanup path if you're tearing down the world; not required for normal use.
+Clears the internal work lists and the contact records. Call from a cleanup path if you're tearing down the world; not required for normal use.
 
 ---
 
