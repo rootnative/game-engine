@@ -10,6 +10,7 @@ export type {
   BodyShape,
   BodyComponent,
   Contacts,
+  EndedContacts,
   Position2D,
   Velocity2D,
 } from './physics'

@@ -639,6 +639,157 @@ describe('collision filter', () => {
   })
 })
 
+describe('the begin and the end of a contact', () => {
+  const floorDef = {
+    type: 'static',
+    position: { x: 0, y: 20 },
+    shape: { kind: 'box', width: 2000, height: 20 },
+  } as const
+  const ballDef = {
+    type: 'dynamic',
+    position: { x: 0, y: 0 },
+    shape: { kind: 'circle', radius: 10 },
+  } as const
+
+  /** A ball that rests on a floor under gravity, so the two touch in each step. */
+  function restingBall() {
+    const s = setup()
+    const floor = s.body(floorDef)
+    const ball = s.body(ballDef)
+    return { ...s, floor, ball }
+  }
+
+  it('marks a contact as begun only in its first step', () => {
+    const { physics, step } = restingBall()
+    step()
+    expect(physics.contacts.count).toBe(1)
+    expect(physics.contacts.began[0]).toBe(1)
+    for (let i = 0; i < 5; i++) {
+      step()
+      expect(physics.contacts.count).toBe(1)
+      expect(physics.contacts.began[0]).toBe(0)
+      expect(physics.ended.count).toBe(0)
+    }
+  })
+
+  it('lists a pair as ended in the first step without the contact', () => {
+    const { ballId, physics, step } = ballOnFloor(
+      { restitution: 1 },
+      { restitution: 1 },
+    )
+    step()
+    expect(physics.ended.count).toBe(0)
+    step()
+    expect(physics.contacts.count).toBe(0)
+    expect(physics.ended.count).toBe(1)
+    expect(physics.ended.a[0]).toBe(0)
+    expect(physics.ended.b[0]).toBe(ballId)
+    step()
+    expect(physics.ended.count).toBe(0)
+  })
+
+  it('begins a contact again after it ended', () => {
+    const { ballId, Position, Velocity, physics, step } = ballOnFloor(
+      { restitution: 1 },
+      { restitution: 1 },
+    )
+    step()
+    step()
+    Position.data.y[ballId] = 0
+    Velocity.data.y[ballId] = 600
+    step()
+    expect(physics.contacts.began[0]).toBe(1)
+  })
+
+  it('ends the contacts of a destroyed entity', () => {
+    const { world, floor, ball, physics, step } = restingBall()
+    step()
+    destroyEntity(world, ball)
+    step()
+    expect(physics.ended.count).toBe(1)
+    expect(physics.ended.a[0]).toBe(floor)
+    expect(physics.ended.b[0]).toBe(ball)
+  })
+
+  it('ends the contacts of a detached body', () => {
+    const { ball, physics, step } = restingBall()
+    step()
+    physics.detach(ball)
+    step()
+    expect(physics.ended.count).toBe(1)
+    expect(physics.ended.b[0]).toBe(ball)
+  })
+
+  it('ends the old pair and begins a new one when an id gets a new body', () => {
+    const { world, ball, Position, physics, step } = restingBall()
+    step()
+    const y = Position.data.y[ball]
+    destroyEntity(world, ball)
+    const reused = createEntity(world)
+    expect(reused).toBe(ball)
+    physics.attach(reused, { ...ballDef, position: { x: 0, y } })
+    step()
+    expect(physics.contacts.count).toBe(1)
+    expect(physics.contacts.began[0]).toBe(1)
+    expect(physics.ended.count).toBe(1)
+    expect(physics.ended.b[0]).toBe(ball)
+    step()
+    expect(physics.contacts.began[0]).toBe(0)
+    expect(physics.ended.count).toBe(0)
+  })
+
+  it('gives a sensor one begin and one end for one pass of a ball', () => {
+    const { physics, step } = ballOnFloor({}, { sensor: true })
+    let begins = 0
+    let ends = 0
+    let steps = 0
+    for (let i = 0; i < 10; i++) {
+      step()
+      steps += physics.contacts.count
+      if (physics.contacts.count === 1) begins += physics.contacts.began[0]
+      ends += physics.ended.count
+    }
+    expect(steps).toBeGreaterThan(2)
+    expect(begins).toBe(1)
+    expect(ends).toBe(1)
+  })
+
+  it('tracks each pair of many at the same time', () => {
+    const s = setup(undefined, 16)
+    s.body(floorDef)
+    const balls: number[] = []
+    for (let i = 0; i < 12; i++) {
+      balls.push(s.body({ ...ballDef, position: { x: i * 25, y: 0 } }))
+    }
+    s.step()
+    expect(s.physics.contacts.count).toBe(12)
+    s.step()
+    const c = s.physics.contacts
+    expect(c.count).toBe(12)
+    expect(Array.from(c.began.subarray(0, 12))).toEqual(Array(12).fill(0))
+    expect(s.physics.ended.count).toBe(0)
+
+    destroyEntity(s.world, balls[3])
+    destroyEntity(s.world, balls[8])
+    s.step()
+    expect(c.count).toBe(10)
+    expect(Array.from(s.physics.ended.b.subarray(0, 2))).toEqual([
+      balls[3],
+      balls[8],
+    ])
+    expect(s.physics.ended.count).toBe(2)
+  })
+
+  it('forgets the pairs of the last step on destroy', () => {
+    const { physics, step } = restingBall()
+    step()
+    physics.destroy()
+    step()
+    expect(physics.contacts.began[0]).toBe(1)
+    expect(physics.ended.count).toBe(0)
+  })
+})
+
 describe('body lifecycle', () => {
   it('stops the simulation of a detached body', () => {
     const { body, physics, pos, step } = setup()

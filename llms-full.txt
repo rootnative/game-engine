@@ -851,6 +851,7 @@ import type {
   BodyShape,
   BodyComponent,
   Contacts,
+  EndedContacts,
   Position2D,
   Velocity2D,
 } from '@rootnative/game-engine';
@@ -909,6 +910,7 @@ interface Physics {
   readonly detach: (id: EntityId) => void;
   readonly step: System;
   readonly contacts: Contacts;
+  readonly ended: EndedContacts;
   readonly destroy: () => void;
 }
 ```
@@ -991,6 +993,7 @@ interface Contacts {
   readonly depth: Float32Array;   // the overlap before the separation, in px
   readonly impulse: Float32Array; // the normal impulse
   readonly sensor: Uint8Array;    // 1 when a or b is a sensor
+  readonly began: Uint8Array;     // 1 in the first step of the contact
 }
 ```
 
@@ -1000,6 +1003,7 @@ Record `i` is the same index in each array. Only the indexes below `count` hold 
 const breakBricks: System = (world) => {
   const c = physics.contacts;
   for (let i = 0; i < c.count; i++) {
+    if (c.began[i] === 0) continue;
     const other = c.a[i] === ballId ? c.b[i] : c.b[i] === ballId ? c.a[i] : -1;
     if (other >= 0 && hasComponent(world, other, Brick)) {
       destroyEntity(world, other);
@@ -1014,14 +1018,45 @@ const systems = [physics.step, breakBricks];
 - **`a` is always the lower id.** So one pair has one form, and you check both `a` and `b` for your entity.
 - **The normal is a unit vector from `a` to `b`.** With y down, `(0, 1)` means that `b` is below `a`.
 - **`impulse` is the size of the hit**, in mass × px/s. It is `0` when the two bodies already move apart. Use it for the volume of a sound or for damage.
+- **`began` is `1` only in the first step of a contact.** A pair that keeps its contact has a record in each step, with `began` at `0`. Use `began` for a thing that happens one time: a sound, a point, a hit.
 - **An entity can be in more than one record.** If you destroy it in one record, check `hasComponent` before you use it in the next one.
-- **A full buffer drops records, not physics.** The pair is still resolved, and `dropped` counts it. If `dropped` isn't 0, raise `maxContacts`.
+- **A full buffer drops records, not physics.** The pair is still resolved, and `dropped` counts it. If `dropped` isn't 0, raise `maxContacts`. A dropped contact also has no begin and no end.
 
 The arrays are allocated one time, in `createPhysics`. A step allocates nothing for them.
 
+### `ended`
+
+The pairs that had a record in the step before the last `step`, and have none now. Read it in the same system as `contacts`.
+
+```ts
+interface EndedContacts {
+  readonly count: number;
+  readonly a: Uint32Array; // the lower entity id of the pair
+  readonly b: Uint32Array; // the higher entity id of the pair
+}
+```
+
+```ts
+const zones: System = () => {
+  const c = physics.contacts;
+  for (let i = 0; i < c.count; i++) {
+    if (c.began[i] === 1 && (c.a[i] === zoneId || c.b[i] === zoneId)) enterZone();
+  }
+  const e = physics.ended;
+  for (let i = 0; i < e.count; i++) {
+    if (e.a[i] === zoneId || e.b[i] === zoneId) leaveZone();
+  }
+};
+```
+
+- **A pair is in the list for one step.**
+- **A pair also ends when one of its bodies goes away**: after `destroyEntity`, after `detach`, or when the filter starts to reject the pair. So an id in the list can belong to a dead entity. Check `world.alive[id]` or `hasComponent` before you read its components.
+- **A new `attach` starts the contacts of that id again.** In the next step, each of its old pairs is in `ended`, and each of its contacts has `began` at `1`. This keeps the data correct when a new entity gets the id of a destroyed one.
+- **A sensor gets the same data.** `began` is "entered", and `ended` is "left".
+
 ### `destroy()`
 
-Clears the internal work lists and the contact records. Call from a cleanup path if you're tearing down the world; not required for normal use.
+Clears the internal work lists, the contact records, and the pairs that `began` and `ended` compare with. Call from a cleanup path if you're tearing down the world; not required for normal use.
 
 ---
 

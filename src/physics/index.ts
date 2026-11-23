@@ -52,9 +52,19 @@ export interface Contacts {
   readonly depth: Float32Array
   readonly impulse: Float32Array
   readonly sensor: Uint8Array
+  readonly began: Uint8Array
+}
+
+export interface EndedContacts {
+  readonly count: number
+  readonly a: Uint32Array
+  readonly b: Uint32Array
 }
 
 type MutableContacts = { -readonly [K in keyof Contacts]: Contacts[K] }
+type MutableEndedContacts = {
+  -readonly [K in keyof EndedContacts]: EndedContacts[K]
+}
 
 export interface Physics {
   readonly body: BodyComponent
@@ -62,6 +72,7 @@ export interface Physics {
   readonly detach: (id: EntityId) => void
   readonly step: System
   readonly contacts: Contacts
+  readonly ended: EndedContacts
   readonly destroy: () => void
 }
 
@@ -122,6 +133,84 @@ export function createPhysics(opts: PhysicsOptions): Physics {
     depth: new Float32Array(maxContacts),
     impulse: new Float32Array(maxContacts),
     sensor: new Uint8Array(maxContacts),
+    began: new Uint8Array(maxContacts),
+  }
+  const ended: MutableEndedContacts = {
+    count: 0,
+    a: new Uint32Array(maxContacts),
+    b: new Uint32Array(maxContacts),
+  }
+
+  // The pairs of the last step, and a hash table from a pair to its index.
+  // The table has open addressing, and at least 2 slots for each pair, so a
+  // search always finds an empty slot.
+  let tableSize = 2
+  while (tableSize < 2 * maxContacts) tableSize *= 2
+  const tableMask = tableSize - 1
+  const pairTable = new Int32Array(tableSize).fill(-1)
+  const lastA = new Uint32Array(maxContacts)
+  const lastB = new Uint32Array(maxContacts)
+  const lastSlot = new Int32Array(maxContacts)
+  const lastSeen = new Uint8Array(maxContacts)
+  let lastCount = 0
+
+  // An id that got a new body since the last step. Its old pairs end, and
+  // its contacts begin again, because the id can belong to a new entity.
+  const attached = new Uint8Array(ecsWorld.capacity)
+  let anyAttached = false
+
+  function pairSlot(a: number, b: number): number {
+    return (Math.imul(a, 73856093) ^ Math.imul(b, 19349663)) & tableMask
+  }
+
+  function findLastPair(a: number, b: number): number {
+    let slot = pairSlot(a, b)
+    for (;;) {
+      const index = pairTable[slot]
+      if (index < 0) return -1
+      if (lastA[index] === a && lastB[index] === b) return index
+      slot = (slot + 1) & tableMask
+    }
+  }
+
+  function forgetLastPairs(): void {
+    for (let i = 0; i < lastCount; i++) {
+      pairTable[lastSlot[i]] = -1
+      lastSeen[i] = 0
+    }
+    lastCount = 0
+  }
+
+  function trackPairs(): void {
+    let endedCount = 0
+    for (let i = 0; i < lastCount; i++) {
+      if (lastSeen[i] === 0) {
+        ended.a[endedCount] = lastA[i]
+        ended.b[endedCount] = lastB[i]
+        endedCount++
+      }
+      pairTable[lastSlot[i]] = -1
+      lastSeen[i] = 0
+    }
+    ended.count = endedCount
+
+    const count = contacts.count
+    for (let i = 0; i < count; i++) {
+      const a = contacts.a[i]
+      const b = contacts.b[i]
+      let slot = pairSlot(a, b)
+      while (pairTable[slot] >= 0) slot = (slot + 1) & tableMask
+      pairTable[slot] = i
+      lastSlot[i] = slot
+      lastA[i] = a
+      lastB[i] = b
+    }
+    lastCount = count
+
+    if (anyAttached) {
+      attached.fill(0)
+      anyAttached = false
+    }
   }
 
   const dynamicIds: number[] = []
@@ -161,6 +250,9 @@ export function createPhysics(opts: PhysicsOptions): Physics {
             : def.shape.width * def.shape.height
       inv = m > 0 ? 1 / m : 0
     }
+
+    attached[id] = 1
+    anyAttached = true
 
     addComponent(ecsWorld, id, Body, {
       type: isDynamic ? TYPE_DYNAMIC : TYPE_STATIC,
@@ -208,6 +300,15 @@ export function createPhysics(opts: PhysicsOptions): Physics {
       contacts.depth[record] = overlap
       contacts.impulse[record] = 0
       contacts.sensor[record] = sensor
+      let began = 1
+      if (attached[a] === 0 && attached[b] === 0) {
+        const last = findLastPair(a, b)
+        if (last >= 0) {
+          lastSeen[last] = 1
+          began = 0
+        }
+      }
+      contacts.began[record] = began
     } else {
       contacts.dropped++
     }
@@ -420,6 +521,8 @@ export function createPhysics(opts: PhysicsOptions): Physics {
         }
       }
     }
+
+    trackPairs()
   }
 
   return {
@@ -428,9 +531,12 @@ export function createPhysics(opts: PhysicsOptions): Physics {
     detach,
     step,
     contacts,
+    ended,
     destroy() {
       contacts.count = 0
       contacts.dropped = 0
+      ended.count = 0
+      forgetLastPairs()
       dynamicIds.length = 0
       staticIds.length = 0
     },
