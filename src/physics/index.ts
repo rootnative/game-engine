@@ -234,7 +234,12 @@ export function createPhysics(opts: PhysicsOptions): Physics {
     const dy = posY[b] - posY[a]
     const r = halfW[a] + halfW[b]
     const distSq = dx * dx + dy * dy
-    if (distSq >= r * r || distSq === 0) return
+    if (distSq >= r * r) return
+    if (distSq === 0) {
+      // Two centres at one point give no direction, so use a fixed one.
+      resolveContact(a, b, 1, 0, r)
+      return
+    }
     const dist = Math.sqrt(distSq)
     resolveContact(a, b, dx / dist, dy / dist, r - dist)
   }

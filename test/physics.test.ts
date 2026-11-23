@@ -253,6 +253,24 @@ describe('contacts', () => {
     expect(vel(b)[0]).toBeCloseTo(100)
   })
 
+  it('moves two balls at the same point apart on the x axis', () => {
+    const { body, physics, pos, step } = setup(NO_GRAVITY)
+    const ball = {
+      type: 'dynamic',
+      position: { x: 0, y: 0 },
+      shape: { kind: 'circle', radius: 10 },
+    } as const
+    const a = body(ball)
+    const b = body(ball)
+    step()
+    expect(pos(a)).toEqual([-10, 0])
+    expect(pos(b)).toEqual([10, 0])
+    expect(physics.contacts.count).toBe(1)
+    expect(physics.contacts.depth[0]).toBe(20)
+    step()
+    expect(physics.contacts.count).toBe(0)
+  })
+
   it('moves a box out of a static box along the axis of the smaller overlap', () => {
     const { body, pos, step } = setup(NO_GRAVITY)
     const box = body({
