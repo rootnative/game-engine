@@ -53,6 +53,7 @@ const NO_GRAVITY = { x: 0, y: 0 }
 interface Surface {
   readonly restitution?: number
   readonly friction?: number
+  readonly sensor?: boolean
 }
 
 /**
@@ -466,6 +467,89 @@ describe('contact records', () => {
     step()
     physics.destroy()
     expect(physics.contacts.count).toBe(0)
+  })
+})
+
+describe('sensors', () => {
+  const box = { kind: 'box', width: 20, height: 20 } as const
+
+  it('lets a ball go through a static sensor, and records the contact', () => {
+    const { ballId, physics, pos, vel, step } = ballOnFloor(
+      {},
+      { sensor: true },
+    )
+    step()
+    expect(pos(ballId)).toEqual([0, 10])
+    expect(vel(ballId)).toEqual([0, 600])
+    const c = physics.contacts
+    expect(c.count).toBe(1)
+    expect(c.sensor[0]).toBe(1)
+    expect(c.depth[0]).toBeCloseTo(5)
+    expect(c.impulse[0]).toBe(0)
+  })
+
+  it('lets a dynamic sensor go through a static body', () => {
+    const { ballId, physics, pos, vel, step } = ballOnFloor({ sensor: true })
+    step()
+    expect(pos(ballId)).toEqual([0, 10])
+    expect(vel(ballId)).toEqual([0, 600])
+    expect(physics.contacts.sensor[0]).toBe(1)
+  })
+
+  it('records two dynamic sensors that overlap, and moves neither', () => {
+    const { body, physics, pos, step } = setup(NO_GRAVITY)
+    const a = body({
+      type: 'dynamic',
+      position: { x: 0, y: 0 },
+      shape: box,
+      sensor: true,
+    })
+    const b = body({
+      type: 'dynamic',
+      position: { x: 15, y: 0 },
+      shape: box,
+      sensor: true,
+    })
+    step()
+    expect(pos(a)).toEqual([0, 0])
+    expect(pos(b)).toEqual([15, 0])
+    expect(physics.contacts.count).toBe(1)
+    expect(physics.contacts.sensor[0]).toBe(1)
+  })
+
+  it('marks a contact of two solid bodies as not a sensor', () => {
+    const { physics, step } = ballOnFloor()
+    step()
+    expect(physics.contacts.sensor[0]).toBe(0)
+  })
+
+  it('reports the same contact in each step that the overlap lasts', () => {
+    const { physics, step } = ballOnFloor({}, { sensor: true })
+    step()
+    step()
+    expect(physics.contacts.count).toBe(1)
+  })
+
+  it('never tests a static sensor against a static body', () => {
+    const { body, physics, step } = setup(NO_GRAVITY)
+    body({ type: 'static', position: { x: 0, y: 0 }, shape: box, sensor: true })
+    body({ type: 'static', position: { x: 5, y: 0 }, shape: box })
+    step()
+    expect(physics.contacts.count).toBe(0)
+  })
+
+  it('makes the body solid again when a new attach has no sensor', () => {
+    const { ballId, physics, vel, step } = ballOnFloor({ sensor: true })
+    expect(physics.body.data.flags[ballId]).toBe(1)
+    physics.attach(ballId, {
+      type: 'dynamic',
+      position: { x: 0, y: 0 },
+      velocity: { x: 0, y: 600 },
+      shape: { kind: 'circle', radius: 10 },
+    })
+    expect(physics.body.data.flags[ballId]).toBe(0)
+    step()
+    expect(vel(ballId)[1]).toBeCloseTo(0)
   })
 })
 

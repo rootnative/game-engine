@@ -16,7 +16,7 @@ import type {
 
 A custom **circles + axis-aligned-box** solver built directly on the ECS TypedArrays. Allocation-free in the hot loop, and it does only what arcade games need.
 
-**What it does:** position-separation, restitution impulse, Coulomb friction. Single-pass resolution per contact.
+**What it does:** position-separation, restitution impulse, Coulomb friction, contact records, sensors. Single-pass resolution per contact.
 
 **What it doesn't do:** rotational dynamics, joints, polygons, continuous collision detection. If your game needs any of these, the `Physics` interface is small enough to back with planck behind the same shape.
 
@@ -79,6 +79,7 @@ The `Body` component this physics instance defined. Useful if you need to query 
 type BodyComponent = Component<{
   type: 'u8';      // 0 = static, 1 = dynamic
   shape: 'u8';     // 0 = circle, 1 = box
+  flags: 'u8';     // bit 0 = sensor
   halfW: 'f32';
   halfH: 'f32';    // equals halfW for circles
   invMass: 'f32';  // 0 for static
@@ -100,6 +101,7 @@ physics.attach(id, {
   // mass:        derived from area if omitted
   // friction:    0
   // restitution: 0
+  // sensor:      false
 });
 ```
 
@@ -142,6 +144,7 @@ interface Contacts {
   readonly ny: Float32Array;
   readonly depth: Float32Array;   // the overlap before the separation, in px
   readonly impulse: Float32Array; // the normal impulse
+  readonly sensor: Uint8Array;    // 1 when a or b is a sensor
 }
 ```
 
@@ -187,6 +190,7 @@ interface BodyDef {
   readonly mass?: number;          // dynamic only
   readonly friction?: number;      // 0..1, default 0
   readonly restitution?: number;   // 0..1, default 0 (1 = perfectly elastic)
+  readonly sensor?: boolean;       // default false
 }
 ```
 
@@ -214,6 +218,24 @@ Pair-wise rules per contact:
 - **Restitution** uses the minimum of the two bodies (`e = min(a.rest, b.rest)`). A perfectly bouncy ball on a non-bouncy floor will not bounce.
 
 Both default to `0`.
+
+### `sensor`
+
+A sensor finds bodies and pushes nothing. Use it for a pickup, a goal, or a damage zone.
+
+```ts
+physics.attach(coinId, {
+  type: 'static',
+  position: { x: 200, y: 120 },
+  shape: { kind: 'circle', radius: 12 },
+  sensor: true,
+});
+```
+
+- A pair with a sensor gets a record in [`contacts`](#contacts) with `sensor[i] === 1`, in each step that the overlap lasts. Its `impulse` is `0`.
+- The solver does not move the two bodies and does not change their velocities.
+- A dynamic sensor still falls with gravity and moves with its velocity.
+- A static sensor finds only dynamic bodies, because static-vs-static pairs are skipped.
 
 ---
 

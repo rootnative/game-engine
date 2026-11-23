@@ -7,6 +7,7 @@ export type Velocity2D = Component<{ x: 'f32'; y: 'f32' }>
 export type BodyComponent = Component<{
   type: 'u8'
   shape: 'u8'
+  flags: 'u8'
   halfW: 'f32'
   halfH: 'f32'
   invMass: 'f32'
@@ -26,6 +27,7 @@ export interface BodyDef {
   readonly mass?: number
   readonly friction?: number
   readonly restitution?: number
+  readonly sensor?: boolean
 }
 
 export interface PhysicsOptions {
@@ -45,6 +47,7 @@ export interface Contacts {
   readonly ny: Float32Array
   readonly depth: Float32Array
   readonly impulse: Float32Array
+  readonly sensor: Uint8Array
 }
 
 type MutableContacts = { -readonly [K in keyof Contacts]: Contacts[K] }
@@ -62,6 +65,7 @@ const SHAPE_CIRCLE = 0
 const SHAPE_BOX = 1
 const TYPE_STATIC = 0
 const TYPE_DYNAMIC = 1
+const FLAG_SENSOR = 1
 
 export function createPhysics(opts: PhysicsOptions): Physics {
   const ecsWorld = opts.world
@@ -70,6 +74,7 @@ export function createPhysics(opts: PhysicsOptions): Physics {
   const Body = defineComponent(ecsWorld, {
     type: 'u8',
     shape: 'u8',
+    flags: 'u8',
     halfW: 'f32',
     halfH: 'f32',
     invMass: 'f32',
@@ -83,6 +88,7 @@ export function createPhysics(opts: PhysicsOptions): Physics {
   const velY = Velocity.data.y as Float32Array
   const bodyType = Body.data.type as Uint8Array
   const bodyShape = Body.data.shape as Uint8Array
+  const bodyFlags = Body.data.flags as Uint8Array
   const halfW = Body.data.halfW as Float32Array
   const halfH = Body.data.halfH as Float32Array
   const invMass = Body.data.invMass as Float32Array
@@ -105,6 +111,7 @@ export function createPhysics(opts: PhysicsOptions): Physics {
     ny: new Float32Array(maxContacts),
     depth: new Float32Array(maxContacts),
     impulse: new Float32Array(maxContacts),
+    sensor: new Uint8Array(maxContacts),
   }
 
   const dynamicIds: number[] = []
@@ -148,6 +155,7 @@ export function createPhysics(opts: PhysicsOptions): Physics {
     addComponent(ecsWorld, id, Body, {
       type: isDynamic ? TYPE_DYNAMIC : TYPE_STATIC,
       shape,
+      flags: def.sensor === true ? FLAG_SENSOR : 0,
       halfW: hw,
       halfH: hh,
       invMass: inv,
@@ -176,6 +184,8 @@ export function createPhysics(opts: PhysicsOptions): Physics {
       ny = -ny
     }
 
+    const sensor = (bodyFlags[a] | bodyFlags[b]) & FLAG_SENSOR
+
     let record = -1
     if (contacts.count < maxContacts) {
       record = contacts.count++
@@ -185,9 +195,11 @@ export function createPhysics(opts: PhysicsOptions): Physics {
       contacts.ny[record] = ny
       contacts.depth[record] = overlap
       contacts.impulse[record] = 0
+      contacts.sensor[record] = sensor
     } else {
       contacts.dropped++
     }
+    if (sensor !== 0) return
 
     const ima = invMass[a]
     const imb = invMass[b]
