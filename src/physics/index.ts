@@ -510,13 +510,12 @@ export function createPhysics(opts: PhysicsOptions): Physics {
       posY[id] += velY[id] * dt
     }
 
-    const stN = staticIds.length
     for (let i = 0; i < dynN; i++) {
       const a = dynamicIds[i]
       const layerA = layer[a]
       const collidesA = collides[a]
-      for (let j = 0; j < stN; j++) {
-        const b = staticIds[j]
+      for (let j = i + 1; j < dynN; j++) {
+        const b = dynamicIds[j]
         if (
           !filtered ||
           ((layerA & collides[b]) !== 0 && (layer[b] & collidesA) !== 0)
@@ -526,12 +525,15 @@ export function createPhysics(opts: PhysicsOptions): Physics {
       }
     }
 
+    // The static pairs run last. A dynamic pair can push a body into a static
+    // body, and this order moves the body out again in the same step.
+    const stN = staticIds.length
     for (let i = 0; i < dynN; i++) {
       const a = dynamicIds[i]
       const layerA = layer[a]
       const collidesA = collides[a]
-      for (let j = i + 1; j < dynN; j++) {
-        const b = dynamicIds[j]
+      for (let j = 0; j < stN; j++) {
+        const b = staticIds[j]
         if (
           !filtered ||
           ((layerA & collides[b]) !== 0 && (layer[b] & collidesA) !== 0)

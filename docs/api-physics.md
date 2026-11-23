@@ -136,8 +136,8 @@ The `System` you put in your system list. Runs one fixed timestep per call:
 
 1. Rebuild the dynamic / static work lists by scanning `[0, world.nextId)`. Dead entities and entities missing the required components are skipped, so destroyed bodies drop out here without any explicit cleanup.
 2. Integrate dynamic bodies (gravity + velocity → position).
-3. Test dynamic-vs-static pairs.
-4. Test dynamic-vs-dynamic pairs (O(N²) broadphase).
+3. Test dynamic-vs-dynamic pairs (O(N²) broadphase).
+4. Test dynamic-vs-static pairs. They run last, so a push from a second body can't leave a body inside a wall.
 
 Each overlapping pair is resolved inline as it's found — positional separation by inverse-mass ratio, then restitution impulse, then Coulomb friction (clamped to `μ * j_normal`). There's no separate contact-resolution phase; resolution happens inside the pair test. Each pair also gets a record in [`contacts`](#contacts).
 

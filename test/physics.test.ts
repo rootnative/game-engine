@@ -314,6 +314,24 @@ describe('contacts', () => {
     expect(pos(ball)[1]).toBeCloseTo(15)
   })
 
+  it('keeps a body out of a wall when a second body pushes it there', () => {
+    const { body, pos, step } = setup(NO_GRAVITY)
+    body({
+      type: 'static',
+      position: { x: -10, y: 0 },
+      shape: { kind: 'box', width: 20, height: 200 },
+    })
+    const ball = {
+      type: 'dynamic',
+      shape: { kind: 'circle', radius: 10 },
+    } as const
+    const atWall = body({ ...ball, position: { x: 10, y: 0 } })
+    const pusher = body({ ...ball, position: { x: 25, y: 0 } })
+    step()
+    expect(pos(atWall)[0]).toBeCloseTo(10)
+    expect(pos(pusher)[0]).toBeCloseTo(27.5)
+  })
+
   it('never resolves two static bodies', () => {
     const { body, pos, step } = setup(NO_GRAVITY)
     const a = body({
