@@ -2,7 +2,13 @@ export * from './core'
 export { GameEngine, useEngine } from './GameEngine'
 export type { GameEngineProps } from './GameEngine'
 export type { Engine } from './engine'
-export { createPhysics } from './physics'
+export {
+  createPhysics,
+  TOUCH_BOTTOM,
+  TOUCH_TOP,
+  TOUCH_LEFT,
+  TOUCH_RIGHT,
+} from './physics'
 export type {
   Physics,
   PhysicsOptions,

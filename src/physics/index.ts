@@ -73,8 +73,14 @@ export interface Physics {
   readonly step: System
   readonly contacts: Contacts
   readonly ended: EndedContacts
+  readonly touching: Uint8Array
   readonly destroy: () => void
 }
+
+export const TOUCH_BOTTOM = 1
+export const TOUCH_TOP = 2
+export const TOUCH_LEFT = 4
+export const TOUCH_RIGHT = 8
 
 const SHAPE_CIRCLE = 0
 const SHAPE_BOX = 1
@@ -140,6 +146,8 @@ export function createPhysics(opts: PhysicsOptions): Physics {
     a: new Uint32Array(maxContacts),
     b: new Uint32Array(maxContacts),
   }
+
+  const touching = new Uint8Array(ecsWorld.capacity)
 
   // The pairs of the last step, and a hash table from a pair to its index.
   // The table has open addressing, and at least 2 slots for each pair, so a
@@ -314,6 +322,16 @@ export function createPhysics(opts: PhysicsOptions): Physics {
     }
     if (sensor !== 0) return
 
+    const absX = nx < 0 ? -nx : nx
+    const absY = ny < 0 ? -ny : ny
+    if (absX > absY) {
+      touching[a] |= nx > 0 ? TOUCH_RIGHT : TOUCH_LEFT
+      touching[b] |= nx > 0 ? TOUCH_LEFT : TOUCH_RIGHT
+    } else {
+      touching[a] |= ny > 0 ? TOUCH_BOTTOM : TOUCH_TOP
+      touching[b] |= ny > 0 ? TOUCH_TOP : TOUCH_BOTTOM
+    }
+
     const ima = invMass[a]
     const imb = invMass[b]
     const totalIM = ima + imb
@@ -460,6 +478,7 @@ export function createPhysics(opts: PhysicsOptions): Physics {
     const n = ecsWorld.nextId
     const alive = ecsWorld.alive
     const mask = ecsWorld.mask
+    touching.fill(0, 0, n)
     let usedLayers = 0
     let acceptedByAll = ALL_LAYERS
     let hasNoLayer = false
@@ -532,7 +551,9 @@ export function createPhysics(opts: PhysicsOptions): Physics {
     step,
     contacts,
     ended,
+    touching,
     destroy() {
+      touching.fill(0)
       contacts.count = 0
       contacts.dropped = 0
       ended.count = 0

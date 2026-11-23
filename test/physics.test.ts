@@ -8,7 +8,13 @@ import {
   destroyEntity,
 } from '../src/core'
 import type { FrameContext } from '../src/core'
-import { createPhysics } from '../src/physics'
+import {
+  createPhysics,
+  TOUCH_BOTTOM,
+  TOUCH_LEFT,
+  TOUCH_RIGHT,
+  TOUCH_TOP,
+} from '../src/physics'
 import type { BodyDef, PhysicsOptions } from '../src/physics'
 
 const DT = 1 / 60
@@ -787,6 +793,112 @@ describe('the begin and the end of a contact', () => {
     step()
     expect(physics.contacts.began[0]).toBe(1)
     expect(physics.ended.count).toBe(0)
+  })
+})
+
+describe('the sides that touch', () => {
+  const box = { kind: 'box', width: 20, height: 20 } as const
+  const floorDef = {
+    type: 'static',
+    position: { x: 0, y: 25 },
+    shape: { kind: 'box', width: 200, height: 20 },
+  } as const
+  const wallDef = {
+    type: 'static',
+    position: { x: 25, y: 0 },
+    shape: { kind: 'box', width: 20, height: 200 },
+  } as const
+
+  it('marks the bottom of a ball and the top of the floor under it', () => {
+    const { ballId, physics, step } = ballOnFloor()
+    step()
+    expect(physics.touching[ballId]).toBe(TOUCH_BOTTOM)
+    expect(physics.touching[0]).toBe(TOUCH_TOP)
+  })
+
+  it('marks the right of a box and the left of the wall that it hits', () => {
+    const { body, physics, step } = setup(NO_GRAVITY)
+    const wall = body(wallDef)
+    const mover = body({
+      type: 'dynamic',
+      position: { x: 0, y: 0 },
+      velocity: { x: 600, y: 0 },
+      shape: box,
+    })
+    step()
+    expect(physics.touching[mover]).toBe(TOUCH_RIGHT)
+    expect(physics.touching[wall]).toBe(TOUCH_LEFT)
+  })
+
+  it('marks the left and the top of a body when the other body is there', () => {
+    const { body, physics, step } = setup(NO_GRAVITY)
+    const mover = body({
+      type: 'dynamic',
+      position: { x: 50, y: 50 },
+      velocity: { x: -600, y: -600 },
+      shape: box,
+    })
+    body({ ...wallDef, position: { x: 25, y: 50 } })
+    body({ ...floorDef, position: { x: 50, y: 25 } })
+    step()
+    expect(physics.touching[mover]).toBe(TOUCH_LEFT | TOUCH_TOP)
+  })
+
+  it('marks two sides of a body in a corner', () => {
+    const { body, physics, step } = setup(NO_GRAVITY)
+    body(floorDef)
+    body(wallDef)
+    const mover = body({
+      type: 'dynamic',
+      position: { x: 0, y: 0 },
+      velocity: { x: 600, y: 600 },
+      shape: box,
+    })
+    step()
+    expect(physics.touching[mover]).toBe(TOUCH_BOTTOM | TOUCH_RIGHT)
+  })
+
+  it('clears the sides in the first step without the contact', () => {
+    const { ballId, physics, step } = ballOnFloor(
+      { restitution: 1 },
+      { restitution: 1 },
+    )
+    step()
+    expect(physics.touching[ballId]).toBe(TOUCH_BOTTOM)
+    step()
+    expect(physics.touching[ballId]).toBe(0)
+    expect(physics.touching[0]).toBe(0)
+  })
+
+  it('marks no side for a sensor contact', () => {
+    const { ballId, physics, step } = ballOnFloor({}, { sensor: true })
+    step()
+    expect(physics.contacts.count).toBe(1)
+    expect(physics.touching[ballId]).toBe(0)
+    expect(physics.touching[0]).toBe(0)
+  })
+
+  it('marks the sides of a contact that the buffer dropped', () => {
+    const { body, physics, step } = setup(NO_GRAVITY, 1)
+    body(floorDef)
+    const ball = {
+      type: 'dynamic',
+      velocity: { x: 0, y: 600 },
+      shape: { kind: 'circle', radius: 10 },
+    } as const
+    const first = body({ ...ball, position: { x: -50, y: 0 } })
+    const second = body({ ...ball, position: { x: 50, y: 0 } })
+    step()
+    expect(physics.contacts.dropped).toBe(1)
+    expect(physics.touching[first]).toBe(TOUCH_BOTTOM)
+    expect(physics.touching[second]).toBe(TOUCH_BOTTOM)
+  })
+
+  it('clears the sides on destroy', () => {
+    const { ballId, physics, step } = ballOnFloor()
+    step()
+    physics.destroy()
+    expect(physics.touching[ballId]).toBe(0)
   })
 })
 

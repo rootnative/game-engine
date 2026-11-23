@@ -843,7 +843,13 @@ The loop is **not** destroyed on `running={false}` — it's just stopped. If you
 # Physics
 
 ```ts
-import { createPhysics } from '@rootnative/game-engine';
+import {
+  createPhysics,
+  TOUCH_BOTTOM,
+  TOUCH_TOP,
+  TOUCH_LEFT,
+  TOUCH_RIGHT,
+} from '@rootnative/game-engine';
 import type {
   Physics,
   PhysicsOptions,
@@ -911,6 +917,7 @@ interface Physics {
   readonly step: System;
   readonly contacts: Contacts;
   readonly ended: EndedContacts;
+  readonly touching: Uint8Array;
   readonly destroy: () => void;
 }
 ```
@@ -1054,9 +1061,36 @@ const zones: System = () => {
 - **A new `attach` starts the contacts of that id again.** In the next step, each of its old pairs is in `ended`, and each of its contacts has `began` at `1`. This keeps the data correct when a new entity gets the id of a destroyed one.
 - **A sensor gets the same data.** `began` is "entered", and `ended` is "left".
 
+### `touching`
+
+One byte for each entity id. It tells you which sides of the body had a solid contact in the last `step`.
+
+```ts
+const TOUCH_BOTTOM = 1;
+const TOUCH_TOP = 2;
+const TOUCH_LEFT = 4;
+const TOUCH_RIGHT = 8;
+```
+
+```ts
+const jump: System = (_world, ctx) => {
+  const onFloor = (physics.touching[playerId] & TOUCH_BOTTOM) !== 0;
+  if (onFloor && tapped(ctx)) Velocity.data.y[playerId] = -420;
+};
+
+const systems = [physics.step, jump];
+```
+
+- **The names are for screen coordinates, with y down.** `TOUCH_BOTTOM` is the side with the larger y.
+- **One contact sets one side on each of its two bodies**: the side that the normal points at most. A ball on a floor gets `TOUCH_BOTTOM`, and the floor gets `TOUCH_TOP`.
+- **A body can have more than one bit.** A body in a corner has `TOUCH_BOTTOM | TOUCH_RIGHT`.
+- **Each `step` starts with each byte at 0.** So the byte of a destroyed entity is 0 after the next step.
+- **A sensor contact sets no bit**, on the sensor and on the other body.
+- **A full `contacts` buffer doesn't change this data.** A dropped contact still sets its bits.
+
 ### `destroy()`
 
-Clears the internal work lists, the contact records, and the pairs that `began` and `ended` compare with. Call from a cleanup path if you're tearing down the world; not required for normal use.
+Clears the internal work lists, the contact records, `touching`, and the pairs that `began` and `ended` compare with. Call from a cleanup path if you're tearing down the world; not required for normal use.
 
 ---
 
