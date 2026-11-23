@@ -54,6 +54,8 @@ interface Surface {
   readonly restitution?: number
   readonly friction?: number
   readonly sensor?: boolean
+  readonly layer?: number
+  readonly collidesWith?: number
 }
 
 /**
@@ -550,6 +552,90 @@ describe('sensors', () => {
     expect(physics.body.data.flags[ballId]).toBe(0)
     step()
     expect(vel(ballId)[1]).toBeCloseTo(0)
+  })
+})
+
+describe('collision filter', () => {
+  const PLAYER = 1 << 1
+  const WALL = 1 << 2
+
+  /** A ball that the floor stopped has no speed. A ball that went through keeps 600. */
+  function speedAfterStep(ball: Surface, floor: Surface) {
+    const { ballId, physics, vel, step } = ballOnFloor(ball, floor)
+    step()
+    return { speed: vel(ballId)[1], records: physics.contacts.count }
+  }
+
+  it('puts a body on layer 1, and lets it collide with each layer', () => {
+    const { ballId, physics } = ballOnFloor()
+    expect(physics.body.data.layer[ballId]).toBe(1)
+    expect(physics.body.data.collides[ballId]).toBe(0xffffffff)
+  })
+
+  it('collides when each body accepts the layer of the other body', () => {
+    const { speed, records } = speedAfterStep(
+      { layer: PLAYER, collidesWith: WALL },
+      { layer: WALL, collidesWith: PLAYER },
+    )
+    expect(speed).toBeCloseTo(0)
+    expect(records).toBe(1)
+  })
+
+  it('skips a pair when the dynamic body rejects the layer of the static body', () => {
+    const { speed, records } = speedAfterStep(
+      { layer: PLAYER, collidesWith: PLAYER },
+      { layer: WALL },
+    )
+    expect(speed).toBe(600)
+    expect(records).toBe(0)
+  })
+
+  it('skips a pair when the static body rejects the layer of the dynamic body', () => {
+    const { speed, records } = speedAfterStep(
+      { layer: PLAYER },
+      { layer: WALL, collidesWith: WALL },
+    )
+    expect(speed).toBe(600)
+    expect(records).toBe(0)
+  })
+
+  it('skips two dynamic bodies that the filter rejects', () => {
+    const { body, physics, pos, step } = setup(NO_GRAVITY)
+    const bullet = {
+      type: 'dynamic',
+      shape: { kind: 'circle', radius: 10 },
+      layer: PLAYER,
+      collidesWith: WALL,
+    } as const
+    const a = body({ ...bullet, position: { x: 0, y: 0 } })
+    const b = body({ ...bullet, position: { x: 15, y: 0 } })
+    step()
+    expect(pos(a)).toEqual([0, 0])
+    expect(pos(b)).toEqual([15, 0])
+    expect(physics.contacts.count).toBe(0)
+  })
+
+  it('gives a sensor no record for a body that the filter rejects', () => {
+    const { records } = speedAfterStep(
+      { layer: PLAYER },
+      { sensor: true, collidesWith: WALL },
+    )
+    expect(records).toBe(0)
+  })
+
+  it('supports the highest of the 32 layers', () => {
+    const top = 1 << 31
+    const { speed } = speedAfterStep(
+      { layer: top, collidesWith: top },
+      { layer: top, collidesWith: top },
+    )
+    expect(speed).toBeCloseTo(0)
+  })
+
+  it('lets a body on no layer collide with nothing', () => {
+    const { speed, records } = speedAfterStep({ layer: 0 }, {})
+    expect(speed).toBe(600)
+    expect(records).toBe(0)
   })
 })
 

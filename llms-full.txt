@@ -858,7 +858,7 @@ import type {
 
 A custom **circles + axis-aligned-box** solver built directly on the ECS TypedArrays. Allocation-free in the hot loop, and it does only what arcade games need.
 
-**What it does:** position-separation, restitution impulse, Coulomb friction, contact records, sensors. Single-pass resolution per contact.
+**What it does:** position-separation, restitution impulse, Coulomb friction, contact records, sensors, collision layers. Single-pass resolution per contact.
 
 **What it doesn't do:** rotational dynamics, joints, polygons, continuous collision detection. If your game needs any of these, the `Physics` interface is small enough to back with planck behind the same shape.
 
@@ -927,6 +927,8 @@ type BodyComponent = Component<{
   invMass: 'f32';  // 0 for static
   rest: 'f32';     // restitution
   fric: 'f32';     // friction
+  layer: 'u32';    // the layers that the body is on
+  collides: 'u32'; // the layers that the body collides with
 }>;
 ```
 
@@ -944,6 +946,8 @@ physics.attach(id, {
   // friction:    0
   // restitution: 0
   // sensor:      false
+  // layer:       1
+  // collidesWith: 0xffffffff (each layer)
 });
 ```
 
@@ -1033,6 +1037,8 @@ interface BodyDef {
   readonly friction?: number;      // 0..1, default 0
   readonly restitution?: number;   // 0..1, default 0 (1 = perfectly elastic)
   readonly sensor?: boolean;       // default false
+  readonly layer?: number;         // bits, default 1
+  readonly collidesWith?: number;  // bits, default 0xffffffff
 }
 ```
 
@@ -1078,6 +1084,45 @@ physics.attach(coinId, {
 - The solver does not move the two bodies and does not change their velocities.
 - A dynamic sensor still falls with gravity and moves with its velocity.
 - A static sensor finds only dynamic bodies, because static-vs-static pairs are skipped.
+
+### `layer` and `collidesWith`
+
+The filter sets which bodies meet. Each of the two values holds 32 bits, and one bit is one layer.
+
+- `layer` is the set of layers that the body is on.
+- `collidesWith` is the set of layers that the body accepts.
+
+Two bodies meet only when each body accepts a layer of the other body:
+
+```ts
+(a.layer & b.collidesWith) !== 0 && (b.layer & a.collidesWith) !== 0
+```
+
+By default a body is on layer `1` and accepts each layer, so each body meets each other body.
+
+```ts
+const PLAYER = 1 << 0;
+const ENEMY = 1 << 1;
+const BULLET = 1 << 2;
+const WALL = 1 << 3;
+
+// A bullet of the player hits enemies and walls. It does not hit the
+// player, and it does not hit other bullets.
+physics.attach(bulletId, {
+  type: 'dynamic',
+  position: { x: 40, y: 300 },
+  velocity: { x: 500, y: 0 },
+  shape: { kind: 'circle', radius: 3 },
+  layer: BULLET,
+  collidesWith: ENEMY | WALL,
+});
+```
+
+- A pair that the filter rejects gets no separation, no impulse, and no record in [`contacts`](#contacts).
+- A sensor obeys the filter too.
+- A body with `layer: 0` or `collidesWith: 0` meets nothing.
+- The step checks the filter before the shape test, so a rejected pair costs almost nothing.
+- While each body accepts each layer in use, as with the defaults, the step skips the filter check.
 
 ---
 
