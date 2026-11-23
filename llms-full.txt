@@ -34,7 +34,7 @@ A 2D and 3D game engine for React Native, built to run inside **Expo Go** — no
 - **Two-loop architecture** — fixed-timestep simulation on the JS thread, and a render loop of its own (the Skia renderer draws on the UI thread)
 - **Skia renderer (2D)** — single `<Canvas>` driven by Reanimated worklets; batched `drawAtlas`, no React reconciliation per frame
 - **Three.js renderer (3D)** — `expo-gl` + `expo-three`, ECS-driven meshes, camera, and lights, with a `.glb` loader
-- **Physics** — custom circles + AABB solver tailored to arcade games (no rotation, no joints), allocation-free in the hot loop
+- **Physics** — custom circles + AABB solver tailored to arcade games (no rotation, no joints), with contact records, sensors, and collision layers, allocation-free in the hot loop
 - **Asset pipeline** — bundled (`require`) and remote (URL) assets behind one Suspense-friendly API
 - **Input** — Gesture Handler's hook API on the UI thread
 
@@ -171,7 +171,7 @@ For install + a runnable minimal example, see the [repo root README](../README.m
 
 - [Core](./api-core.md) — `createWorld`, `defineComponent`, entity lifecycle, `query`, `createLoop`, `System`, `FrameContext`.
 - [`<GameEngine>`](./api-game-engine.md) — mount component, `useEngine` and its `Engine` controls.
-- [Physics](./api-physics.md) — `createPhysics`, `BodyDef`, body shapes.
+- [Physics](./api-physics.md) — `createPhysics`, `BodyDef`, body shapes, contacts, sensors, collision layers.
 - [Assets](./api-assets.md) — `loadAsset`, `useAsset`, `clearAssetCache`.
 - [Skia renderer](./api-renderer-skia.md) — `<SkiaRenderer>`, `SkiaAtlas`, `loadSkiaAtlas`, `gridFrames`.
 - [Three.js renderer](./api-renderer-three.md) — `<ThreeRenderer>`, `MeshDef`, ECS-driven `Camera` / `AmbientLight` / `DirectionalLight` / `PointLight` components, `loadGltf` / `useGltf` / `extractMeshDefs`.

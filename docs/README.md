@@ -12,7 +12,7 @@ For install + a runnable minimal example, see the [repo root README](../README.m
 
 - [Core](./api-core.md) — `createWorld`, `defineComponent`, entity lifecycle, `query`, `createLoop`, `System`, `FrameContext`.
 - [`<GameEngine>`](./api-game-engine.md) — mount component, `useEngine` and its `Engine` controls.
-- [Physics](./api-physics.md) — `createPhysics`, `BodyDef`, body shapes.
+- [Physics](./api-physics.md) — `createPhysics`, `BodyDef`, body shapes, contacts, sensors, collision layers.
 - [Assets](./api-assets.md) — `loadAsset`, `useAsset`, `clearAssetCache`.
 - [Skia renderer](./api-renderer-skia.md) — `<SkiaRenderer>`, `SkiaAtlas`, `loadSkiaAtlas`, `gridFrames`.
 - [Three.js renderer](./api-renderer-three.md) — `<ThreeRenderer>`, `MeshDef`, ECS-driven `Camera` / `AmbientLight` / `DirectionalLight` / `PointLight` components, `loadGltf` / `useGltf` / `extractMeshDefs`.

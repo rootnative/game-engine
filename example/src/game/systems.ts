@@ -1,12 +1,10 @@
-import { destroyEntity, query, type System } from '@rootnative/game-engine'
-
 import {
-  BALL_RADIUS,
-  BALL_SPEED,
-  BRICK_H,
-  BRICK_W,
-  PADDLE_WIDTH,
-} from './constants'
+  destroyEntity,
+  hasComponent,
+  type System,
+} from '@rootnative/game-engine'
+
+import { BALL_RADIUS, BALL_SPEED, PADDLE_WIDTH } from './constants'
 import type { LevelDeps } from '.'
 import { gameStore } from './store'
 
@@ -58,35 +56,23 @@ export function makePaddleControl(deps: LevelDeps): System {
 }
 
 export function makeBallBrickCollision(deps: LevelDeps): System {
-  const { Position, Brick, refs } = deps
+  const { Brick, physics, refs } = deps
   return (w, _ctx) => {
     if (refs.ballId < 0) return
     if (gameStore.get().status !== 'playing') return
 
-    const bx = Position.data.x[refs.ballId]
-    const by = Position.data.y[refs.ballId]
-    const r = BALL_RADIUS + 0.75
-    const r2 = r * r
-    const halfW = BRICK_W / 2
-    const halfH = BRICK_H / 2
-
+    const ball = refs.ballId
+    const contacts = physics.contacts
     let destroyed = 0
-    query(w, Brick).each((id) => {
-      const cx = Position.data.x[id]
-      const cy = Position.data.y[id]
-      let qx = bx
-      if (qx < cx - halfW) qx = cx - halfW
-      else if (qx > cx + halfW) qx = cx + halfW
-      let qy = by
-      if (qy < cy - halfH) qy = cy - halfH
-      else if (qy > cy + halfH) qy = cy + halfH
-      const ddx = bx - qx
-      const ddy = by - qy
-      if (ddx * ddx + ddy * ddy <= r2) {
-        destroyEntity(w, id)
+    for (let i = 0; i < contacts.count; i++) {
+      const a = contacts.a[i]
+      const b = contacts.b[i]
+      const other = a === ball ? b : b === ball ? a : -1
+      if (other >= 0 && hasComponent(w, other, Brick)) {
+        destroyEntity(w, other)
         destroyed++
       }
-    })
+    }
 
     if (destroyed > 0) {
       const s = gameStore.get()
