@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const PACKAGE = '@rootnative/game-engine'
+const REPOSITORY = 'https://github.com/rootnative/game-engine'
 const TAG_PREFIX = 'game-engine@'
 
 // Trusted publishing needs npm 11.5.1, and `npm stage publish` needs
@@ -85,6 +86,21 @@ if (manifest.private === true) {
   )
 }
 
+// npm compares this URL with the repository in the provenance only at the
+// publish, after the push of the tag. A dry run skips the publish.
+const repositoryField = manifest.repository
+const repositoryUrl =
+  typeof repositoryField === 'string' ? repositoryField : repositoryField?.url
+const normalizedRepositoryUrl = (repositoryUrl ?? '')
+  .replace(/^git\+/, '')
+  .replace(/\.git$/, '')
+  .replace(/\/$/, '')
+if (normalizedRepositoryUrl !== REPOSITORY) {
+  fail(
+    `package.json has no "repository.url" for ${REPOSITORY}${repositoryUrl ? ` (it has "${repositoryUrl}")` : ''}. npm refuses a publish with provenance without it (E422). Add "repository": { "type": "git", "url": "git+${REPOSITORY}.git" } on main, and run the release again.`,
+  )
+}
+
 // The release workflow doesn't write the CHANGELOG. A person commits the
 // section of the version before the run.
 const changelog = readText('CHANGELOG.md')
@@ -99,7 +115,7 @@ if (
   )
 }
 const tag = `${TAG_PREFIX}${version}`
-const releaseLink = `[${version}]: https://github.com/rootnative/game-engine/releases/tag/${tag}`
+const releaseLink = `[${version}]: ${REPOSITORY}/releases/tag/${tag}`
 if (!changelog.split('\n').includes(releaseLink)) {
   fail(
     `CHANGELOG.md has no link line "${releaseLink}". Add it at the end, and set "[Unreleased]" to compare from ${tag}.`,
