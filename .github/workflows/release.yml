@@ -226,14 +226,18 @@ jobs:
         env:
           TAG: game-engine@${{ steps.version.outputs.version }}
         run: |
-          echo "::error::A 404 on PUT /@rootnative%2fgame-engine is almost always an authentication fault, not a missing package."
+          echo "::error::npm refused the publish. Find the npm error code in the log of the step before this one."
+          echo "E401 or E404: an authentication fault, not a missing package. npm couldn't exchange the OIDC token, so it sent the placeholder token that setup-node writes."
           echo "Check these, in this order:"
           echo "  1. Is '.github/workflows/release.yml' a trusted publisher of @rootnative/game-engine on npmjs.com? npm binds to the exact filename."
           echo "  2. Does the job still have 'id-token: write'?"
           echo "  3. Did the step run 'npm publish'? The publisher is stage-only, so the step must run 'npm stage publish'."
+          echo "E422 that names 'repository.url': package.json must name this repository in 'repository.url'. npm compares it with the provenance."
           echo "Main has the tag $TAG, and the release commit if this run made one. After the fix:"
           echo "  1. Delete the tag: git push --delete origin $TAG"
-          echo "  2. Run this workflow with the version 'skip'. It publishes the version on main, with no new commit."
+          echo "  2. Commit and push the fix, if it's a change in the repository."
+          echo "  3. Start a new run of this workflow with the version 'skip'. It publishes the version on main, with no new commit."
+          echo "     Don't use 'Re-run': a re-run uses the old commit and the old inputs."
 
       # The notes are the CHANGELOG section of the version, up to the next
       # section or the footer links. check-release.mjs proved that the
