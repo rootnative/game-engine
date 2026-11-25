@@ -4,6 +4,24 @@ All notable changes to `@rootnative/game-engine` are recorded here. The format f
 
 ## [Unreleased]
 
+## [0.0.0-alpha.2] - 2026-11-25
+
+### Added
+
+- **Contacts.** `physics.contacts` lists each pair of bodies that touch after a step, with the normal, the overlap, and the impulse. `began` marks the first step of a contact, and `physics.ended` lists the pairs that stopped. The `maxContacts` option sets the size of the list (2 times the world capacity by default), and `contacts.dropped` counts the contacts that didn't fit. The physics still resolves a dropped contact.
+- **Sensors.** A body with `sensor: true` reports its contacts and pushes nothing.
+- **Collision layers.** `layer` and `collidesWith` set which bodies collide.
+- **`physics.touching`.** One byte for each body tells you which of its sides has a solid contact. Read it with `TOUCH_BOTTOM`, `TOUCH_TOP`, `TOUCH_LEFT`, and `TOUCH_RIGHT`.
+
+### Fixed
+
+- Two circles at the same point now separate.
+- A dynamic body no longer stays inside a static body after a push from a second body. The contacts with static bodies now resolve last, so a pile of bodies can overlap a little more.
+
+### Known limitations
+
+- **A tall pile can push a body through a thin static body.** The solver makes one pass in each step.
+
 ## [0.0.0-alpha.1] - 2026-11-23
 
 The first release. A 2D and 3D game engine for React Native that runs inside Expo Go, with no custom native code, no `expo prebuild`, and no config plugins. The engine core does not know about the renderer, and each renderer is a separate subpath export.
@@ -36,5 +54,6 @@ The first release. A 2D and 3D game engine for React Native that runs inside Exp
 - **The remote asset cache uses the URL as the key, not the content.** If a URL can serve different bytes, put a version in the URL or call `clearAssetCache()`.
 - **No WebAssembly.** Expo Go runs Hermes, which does not support WebAssembly. So physics engines such as `rapier` and `box2d-wasm` cannot run.
 
-[Unreleased]: https://github.com/rootnative/game-engine/compare/game-engine@0.0.0-alpha.1...HEAD
+[Unreleased]: https://github.com/rootnative/game-engine/compare/game-engine@0.0.0-alpha.2...HEAD
+[0.0.0-alpha.2]: https://github.com/rootnative/game-engine/releases/tag/game-engine@0.0.0-alpha.2
 [0.0.0-alpha.1]: https://github.com/rootnative/game-engine/releases/tag/game-engine@0.0.0-alpha.1

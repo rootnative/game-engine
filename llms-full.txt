@@ -38,7 +38,7 @@ A 2D and 3D game engine for React Native, built to run inside **Expo Go** — no
 - **Asset pipeline** — bundled (`require`) and remote (URL) assets behind one Suspense-friendly API
 - **Input** — Gesture Handler's hook API on the UI thread
 
-> **Status: `0.0.0-alpha.1`, the first alpha.** APIs may shift. See the [CHANGELOG](https://github.com/rootnative/game-engine/blob/main/CHANGELOG.md). The 2D renderer (Skia) and the 3D renderer (`expo-gl` and three.js) run behind the same engine core. The `example/` and `example-3d/` apps in the repository show each one.
+> **Status: `0.0.0-alpha.2`, an alpha.** APIs may shift. See the [CHANGELOG](https://github.com/rootnative/game-engine/blob/main/CHANGELOG.md). The 2D renderer (Skia) and the 3D renderer (`expo-gl` and three.js) run behind the same engine core. The `example/` and `example-3d/` apps in the repository show each one.
 
 ## Install
 
